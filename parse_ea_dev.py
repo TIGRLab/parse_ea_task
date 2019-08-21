@@ -5,9 +5,10 @@
 
 
 import pandas as pd
+import numpy as np
 
 
-# In[43]:
+# In[63]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -43,8 +44,36 @@ def format_vid_info(vid):
 
 
 
+def get_ratings(log):
+    #the times in this row are EXTREMELY close to the other times. This isn't EEG, I think we're prolly ok
+    rating_mask = ["rating" in log['Code'][i] for i in range(0,log.shape[0])]  
+    #RT_mask=  ["Response" in log['Event Type'][i] and log['Code'][i]!="101"  for i in range(0,log.shape[0]-1)]  #this is from when i was doing it the response time way, but idk how i feel abt that
 
-# In[18]:
+    #so now this grabs the timestamp from the row before (which is the actual onset) then applies the rating mask to that list of values
+    df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+    
+    #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
+    #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
+
+    return(df)
+
+
+
+# In[74]:
+
+
+#Okay let's try figuring out something w adding in the gold standard ratings...
+
+#what if i make an extra column in the logs for time elapsed in video, and then find out which rating it should get by dividing by two
+
+#[x for x in combo['trial_type'] if x]
+#if combo['trial_type']:
+#    print(combo['trial_type'])
+
+combo.isna()
+
+
+# In[147]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -53,7 +82,32 @@ log=pd.read_csv('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEm
 
 vid_in = pd.read_csv('EA-vid-lengths.csv')
 vid_info = format_vid_info(vid_in)
-get_blocks(log, vid_info)
+blocks = get_blocks(log, vid_info)
+ratings = get_ratings(log)
+
+#add the ratings and the block values together, then sort them and make the index numbers sequential
+combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
+combo
+#find what index each block starts and ends at, then does some stupid formatting stuff to flatten the array
+t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
+
+#adds the end of the last trial
+t = np.append(t,len(combo["trial_type"])-1)
+#but this doesnt capture the end of the last trial... how do i make it do that??
+
+#creates a dict with trials and start/ends. Next it needs to differentiate between circles and EA and then get the nice values.
+[{(combo['trial_type'][t[i]],combo['stim_file'][t[i]]): {'start':t[i],'end':t[i+1]-1}} for i in range(len(t)-1)]
+
+#(combo['trial_type'][t[0]],combo['trial_type'][t[1]-1])
+#pd.notnull(combo['trial_type'])
+#(starts,ends)=[(t[i],t[i+1]-1) for i in range(len(t)-1)]
+
+#combo.sort_values("onset")
+#uses isna in some versions
+#combo.isnull()
+
+#combo.sort_values("onset")
+
 
 #log['Time']=log['Time'].astype(str) #can i read it in initially with strings only? like stringsAsFactors=T in R?
 
@@ -109,18 +163,31 @@ get_blocks(log, vid_info)
 rating_mask = ["rating" in log['Code'][i] for i in range(0,log.shape[0])]  
 #RT_mask=  ["Response" in log['Event Type'][i] and log['Code'][i]!="101"  for i in range(0,log.shape[0]-1)]  #this is from when i was doing it the response time way, but idk how i feel abt that
 
-df = pd.DataFrame({'onset':log.loc[rating_mask]['Time'].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+#so now this grabs the timestamp from the row before (which is the actual onset) then applies the rating mask to that list of values
+df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
 
 df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
 
 
 
-# In[21]:
+# In[57]:
 
 
 df2=blocks.append(df)
 
 df2.sort_values("onset")
+
+log
+
+rating_mask = ["rating" in log['Code'][i] for i in range(0,log.shape[0])]  
+log['Time'].shift(1).loc[rating_mask].values
+
+
+# In[56]:
+
+
+rating_mask = ["rating" in log['Code'][i] for i in range(0,log.shape[0])]  
+log['Time'].shift(1).loc[rating_mask]
 
 
 # In[34]:
