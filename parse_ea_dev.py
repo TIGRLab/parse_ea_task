@@ -1,13 +1,13 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[42]:
 
 
 import pandas as pd
 
 
-# In[36]:
+# In[43]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -16,14 +16,22 @@ def read_in_logfile(path, vid_lengths):
 
 def get_blocks(log,vid_info):
     #identifies the video trial types (as opposed to button press events etc)
-    mask = ["vid" in log['Code'][i] for i in range(0,log.shape[0]-1)]
+    mask = ["vid" in log['Code'][i] for i in range(0,log.shape[0])]
     #this isnt totally right lol
+    #creates the dataframe with onset times and event types
     df = pd.DataFrame({'onset':log.loc[mask]['Time'], 
                   'trial_type':log.loc[mask]['Event Type'], 
                   'movie_name':log.loc[mask]['Code']})
     
+    #adds trial type info
     df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
-    
+
+    #add durations and convert them into the units here? ms??
+    df['duration']=df['movie_name'].apply(lambda x: int(vid_info[x]['duration'])*10000 if x in vid_info else "n/a")
+
+    #I don't actually know what the stim files are called for the circle ones - also these names aren't exact,gotta figure out a way to get exact file names
+    df['stim_file']=df['movie_name'].apply(lambda x: vid_info[x]['stim_file'] if x in vid_info else "n/a")    
+        
     return(df)
 
     
@@ -34,42 +42,18 @@ def format_vid_info(vid):
     return(vid)
 
 
-# In[41]:
-
-
-log=pd.read_csv('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEmpAcc_part1.log', sep='\t', skiprows=3)
-vid = pd.read_csv('EA-vid-lengths.csv')
-vid_info = format_vid_info(vid)
-
-mask = ["vid" in log['Code'][i] for i in range(0,log.shape[0]-1)]
-    #this isnt totally right lol
-df = pd.DataFrame({'onset':log.loc[mask]['Time'], 
-                  'trial_type':log.loc[mask]['Event Type'], 
-                  'movie_name':log.loc[mask]['Code']})
-    
-df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
-
-#add durations and convert them into the units here? ms??
-df['duration']=df['movie_name'].apply(lambda x: int(vid_info[x]['duration'])*10000 if x in vid_info else "n/a")
-
-#I don't actually know what the stim files are called for the circle ones - also these names aren't exact
-df['stim_file']=df['movie_name'].apply(lambda x: vid_info[x]['stim_file'] if x in vid_info else "n/a")
-
-df
 
 
 # In[18]:
 
 
 #Reads in the log, skipping the first three preamble lines
-log = pd.read_csv('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEmpAcc_part1.log', sep='\t', skiprows=3)
+log=pd.read_csv('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEmpAcc_part1.log', sep='\t', skiprows=3)
 
 
-
-vid = pd.read_csv('EA-vid-lengths.csv')
-vid_info = format_vid_info(vid)
-
-blocks = get_blocks(log)
+vid_in = pd.read_csv('EA-vid-lengths.csv')
+vid_info = format_vid_info(vid_in)
+get_blocks(log, vid_info)
 
 #log['Time']=log['Time'].astype(str) #can i read it in initially with strings only? like stringsAsFactors=T in R?
 
@@ -146,4 +130,24 @@ vid_lengths = pd.read_csv('EA-vid-lengths.csv')
 vid_lengths.columns = map(str.lower, vid_lengths.columns)
 vid_lengths = vid_lengths.rename(index={0:"stim_file", 1:"duration"})
 vid_lengths = vid_lengths.to_dict()
+
+
+
+
+
+
+mask = ["vid" in log['Code'][i] for i in range(0,log.shape[0]-1)]
+    #this isnt totally right lol
+df = pd.DataFrame({'onset':log.loc[mask]['Time'], 
+                  'trial_type':log.loc[mask]['Event Type'], 
+                  'movie_name':log.loc[mask]['Code']})
+    
+df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
+
+#add durations and convert them into the units here? ms??
+df['duration']=df['movie_name'].apply(lambda x: int(vid_info[x]['duration'])*10000 if x in vid_info else "n/a")
+
+#I don't actually know what the stim files are called for the circle ones - also these names aren't exact
+df['stim_file']=df['movie_name'].apply(lambda x: vid_info[x]['stim_file'] if x in vid_info else "n/a")
+
 
