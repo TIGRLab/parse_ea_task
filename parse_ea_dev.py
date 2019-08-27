@@ -64,7 +64,7 @@ def get_ratings(log):
 
 
 
-# In[31]:
+# In[105]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -100,7 +100,6 @@ t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
 
 #df1 = df[['a','b']] for selecting columns
 
-
 t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
 
     
@@ -115,7 +114,7 @@ combo.loc[t]['onset']
 combo
 
 
-# In[48]:
+# In[108]:
 
 
 [{(combo['trial_type'][t[i]],combo['stim_file'][t[i]]): {'start':(t[i], combo['onset'][t[i]]),'end':(t[i+1]-1,combo['onset'][t[i]]+combo['duration'][t[i]])}} for i in range(len(t)-1)]
@@ -123,7 +122,28 @@ combo
 
 
 mask = pd.notnull(combo['trial_type'])
-combo[['onset', 'duration']].sum(axis=1).where(mask==True,0)
+#combo['end_time']=combo['onset']-combo['onset'].shift(1)
+
+combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) #hmm but how do i make the ones in the end of the row? because those actually should calculate from block_end, not from the beginning of the next guy...
+#combo['rating_duration']=
+combo['block_end']=combo[['onset', 'duration']].sum(axis=1).where(mask==True)
+#combo['rating_duration'] = (combo.onset.shift(-1)-combo.onset).where(mask==False)
+#combo['end_time']=
+
+#combo[''].apply(lambda x: x[['onset', 'duration']].sum(axis=1) if np.all(pd.notnull(x['trial_type'])) else x)
+
+combo
+
+
+#df[['onset','duration']].apply(lambda x: my_func(x) if(np.all(pd.notnull(x[1]))) else x, axis = 1)
+
+#combo[['onset','onset'.shift(-1)]].sum(axis=1).where(mask==False)
+
+#pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+#combo['onset']-combo['onset'].shift(1) 
+#combo['end_time']=combo[['onset','onset'.shift(-1)]].sum(axis=1).where(mask==False)
+#combo
+#combo
 
 
 # In[19]:
