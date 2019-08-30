@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[36]:
+# In[108]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -59,14 +59,41 @@ def get_ratings(log):
     
     
     #switching it to not be from the row before because if it has a vid tag before it then it will get the wrong onset number
-    df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
-    
+    df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+    #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
     
     #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
     #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
 
     return(df)
 
+
+def combine_dfs(blocks,ratings):
+    combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
+
+    mask = pd.notnull(combo['trial_type'])
+    #combo['end_time']=combo['onset']-combo['onset'].shift(1)
+
+    combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) #hmm but how do i make the ones in the end of the row? because those actually should calculate from block_end, not from the beginning of the next guy...
+    #this one is tricky!!
+
+    block_start_locs=combo[mask].index.values
+
+    #so one way to do this would be to make durations visible everywhere
+
+    #can i do for i in block_start_locs
+    pd.set_option('display.max_rows', 500)
+
+    #yay! fixes the rating for the last button press of a series!
+    #gives a SettingWithCopy warning
+    #TODO: fix this lol
+    #this ends up not assigning a value for the final button press - there must be a more elegant way to do all this
+    for i in range(len(block_start_locs)):
+        if block_start_locs[i] != 0:
+            #maybe i should calculate these vars separately for clarity
+            combo.rating_duration[block_start_locs[i]-1]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i]-1]
+
+    return(combo)
 
 
 # In[63]:
@@ -77,7 +104,13 @@ combo.sort_values("block_end")
 combo
 
 
-# In[101]:
+# In[105]:
+
+
+
+
+
+# In[109]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -91,9 +124,8 @@ blocks = get_blocks(log, vid_info)
 ratings = get_ratings(log)
 
 #add the ratings and the block values together, then sort them and make the index numbers sequential
-combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
+combo=combine_dfs(blocks,ratings)
 
-combo
 
 
 
@@ -114,55 +146,55 @@ t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
 
 #df1 = df[['a','b']] for selecting columns
 
-t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
+# t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
 
     
-combo.loc[t]['trial_type']
-combo.loc[t]['stim_file']
-combo.loc[t]['onset']
-#combo.loc[t]['onset']+combo.loc[t]['duration']
+# combo.loc[t]['trial_type']
+# combo.loc[t]['stim_file']
+# combo.loc[t]['onset']
+# #combo.loc[t]['onset']+combo.loc[t]['duration']
 
- #adds trial type info
-  #  df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
+#  #adds trial type info
+#   #  df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
 
-combo
-
-
-mask = pd.notnull(combo['trial_type'])
-#combo['end_time']=combo['onset']-combo['onset'].shift(1)
-
-combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) #hmm but how do i make the ones in the end of the row? because those actually should calculate from block_end, not from the beginning of the next guy...
-#this one is tricky!!
-
-block_start_locs=combo[mask].index.values
-
-#so one way to do this would be to make durations visible everywhere
-
-#can i do for i in block_start_locs
-pd.set_option('display.max_rows', 500)
-
-#yay! fixes the rating for the last button press of a series!
-for i in range(len(block_start_locs)):
-    if block_start_locs[i] != 0:
-        #maybe i should calculate these vars separately for clarity
-        print(block_start_locs[i],combo.rating_duration[block_start_locs[i]-1],combo.end[block_start_locs[i-1]], combo.onset[block_start_locs[i]-1])
-        combo.rating_duration[block_start_locs[i]-1]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i]-1]
+# combo
 
 
-#for i in range(1,len(combo)):
-#    if i in block_start_locs:
-        #combo.rating_duration[i]= combo.block_end - combo.onset
-#        combo.rating_duration[i-1]=combo.loc[i].end - combo.onset[i-1]
-#        print ("hi")
+# mask = pd.notnull(combo['trial_type'])
+# #combo['end_time']=combo['onset']-combo['onset'].shift(1)
 
-#('button_press', 'rating_equal_to9')
-#('button_press', 'rating_equal_to9')
-#('button_press', 'rating_equal_to7')
-#('button_press', 'rating_equal_to4')
-    #if pd.notnull(combo['trial_type'].shift(-1)):
-        #print(combo['participant_rating'])
-#combo.loc[block_start_locs].end
-print(block_start_locs)
+# combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) #hmm but how do i make the ones in the end of the row? because those actually should calculate from block_end, not from the beginning of the next guy...
+# #this one is tricky!!
+
+# block_start_locs=combo[mask].index.values
+
+# #so one way to do this would be to make durations visible everywhere
+
+# #can i do for i in block_start_locs
+# pd.set_option('display.max_rows', 500)
+
+# #yay! fixes the rating for the last button press of a series!
+# for i in range(len(block_start_locs)):
+#     if block_start_locs[i] != 0:
+#         #maybe i should calculate these vars separately for clarity
+#         print(block_start_locs[i],combo.rating_duration[block_start_locs[i]-1],combo.end[block_start_locs[i-1]], combo.onset[block_start_locs[i]-1])
+#         combo.rating_duration[block_start_locs[i]-1]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i]-1]
+
+
+# #for i in range(1,len(combo)):
+# #    if i in block_start_locs:
+#         #combo.rating_duration[i]= combo.block_end - combo.onset
+# #        combo.rating_duration[i-1]=combo.loc[i].end - combo.onset[i-1]
+# #        print ("hi")
+
+# #('button_press', 'rating_equal_to9')
+# #('button_press', 'rating_equal_to9')
+# #('button_press', 'rating_equal_to7')
+# #('button_press', 'rating_equal_to4')
+#     #if pd.notnull(combo['trial_type'].shift(-1)):
+#         #print(combo['participant_rating'])
+# #combo.loc[block_start_locs].end
+# print(block_start_locs)
 combo
 
 
