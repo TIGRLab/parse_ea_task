@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[108]:
+# In[123]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -82,7 +82,6 @@ def combine_dfs(blocks,ratings):
     #so one way to do this would be to make durations visible everywhere
 
     #can i do for i in block_start_locs
-    pd.set_option('display.max_rows', 500)
 
     #yay! fixes the rating for the last button press of a series!
     #gives a SettingWithCopy warning
@@ -93,10 +92,34 @@ def combine_dfs(blocks,ratings):
             #maybe i should calculate these vars separately for clarity
             combo.rating_duration[block_start_locs[i]-1]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i]-1]
 
+            
+#adds rows that contain the 5 second at the beginning default value
+    for i in block_start_locs:
+            new_row={'onset':combo.onset[i],
+            'rating_duration':combo.onset[i+1] - combo.onset[i],
+            'event_type':'default_rating',
+            'duration':0}
+            combo=combo.append(new_row,ignore_index=True)
+        
+    combo=combo.sort_values("onset").reset_index(drop=True)
+
     return(combo)
 
 
-# In[109]:
+# In[110]:
+
+
+pd.set_option('display.max_rows', 100)
+
+
+# In[113]:
+
+
+new_row={'onset':50000,'duration':92222222222222222222222222222222222}
+combo.append(new_row, ignore_index=True)
+
+
+# In[124]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -129,6 +152,22 @@ t=np.array(np.where(pd.notnull(combo['trial_type']))).ravel()
 combo
 
 mask = pd.notnull(combo['trial_type'])
+    #combo['end_time']=combo['onset']-combo['onset'].shift(1)
+
+    
+    
+    
+block_start_locs=combo[mask].index.values
+
+    #so one way to do this would be to make durations visible everywhere
+
+    #yay! fixes the rating for the last button press of a series!
+    #gives a SettingWithCopy warning
+    #TODO: fix this lol
+    #this ends up not assigning a value for the final button press - there must be a more elegant way to do all this
+    
+    
+combo
 
 
 # In[50]:
@@ -149,7 +188,6 @@ combo['block_end']=combo[['onset', 'duration']].sum(axis=1).where(mask==True)
 
 #combo[''].apply(lambda x: x[['onset', 'duration']].sum(axis=1) if np.all(pd.notnull(x['trial_type'])) else x)
 
-combo
 
 
 #df[['onset','duration']].apply(lambda x: my_func(x) if(np.all(pd.notnull(x[1]))) else x, axis = 1)
