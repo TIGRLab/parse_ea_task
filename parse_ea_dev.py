@@ -1,19 +1,19 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[7]:
 
 
 import pandas as pd
 import numpy as np
 
 
-# In[2]:
+# In[36]:
 
 
 def read_in_logfile(path, vid_lengths):
     pd.read_csv(path, sep='\t', skip_rows=3)
-
+    return log_file
 
 def get_blocks(log,vid_info):
     #identifies the video trial types (as opposed to button press events etc)
@@ -34,7 +34,7 @@ def get_blocks(log,vid_info):
     df['stim_file']=df['movie_name'].apply(lambda x: vid_info[x]['stim_file'] if x in vid_info else "n/a") 
     
     
-    df['end']=df['onset'].apply(lambda x: x + df['duration'] "cvid" in x else "EA_block")
+    df['end']=df['onset']+df['duration']
 
         
     return(df)
@@ -55,7 +55,12 @@ def get_ratings(log):
     #RT_mask=  ["Response" in log['Event Type'][i] and log['Code'][i]!="101"  for i in range(0,log.shape[0]-1)]  #this is from when i was doing it the response time way, but idk how i feel abt that
 
     #so now this grabs the timestamp from the row before (which is the actual onset) then applies the rating mask to that list of values
+    #df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+    
+    
+    #switching it to not be from the row before because if it has a vid tag before it then it will get the wrong onset number
     df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+    
     
     #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
     #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
@@ -64,7 +69,15 @@ def get_ratings(log):
 
 
 
-# In[105]:
+# In[63]:
+
+
+combo.sort_values("block_end")
+
+combo
+
+
+# In[101]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -79,6 +92,7 @@ ratings = get_ratings(log)
 
 #add the ratings and the block values together, then sort them and make the index numbers sequential
 combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
+
 combo
 
 
@@ -114,7 +128,45 @@ combo.loc[t]['onset']
 combo
 
 
-# In[108]:
+mask = pd.notnull(combo['trial_type'])
+#combo['end_time']=combo['onset']-combo['onset'].shift(1)
+
+combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) #hmm but how do i make the ones in the end of the row? because those actually should calculate from block_end, not from the beginning of the next guy...
+#this one is tricky!!
+
+block_start_locs=combo[mask].index.values
+
+#so one way to do this would be to make durations visible everywhere
+
+#can i do for i in block_start_locs
+pd.set_option('display.max_rows', 500)
+
+#yay! fixes the rating for the last button press of a series!
+for i in range(len(block_start_locs)):
+    if block_start_locs[i] != 0:
+        #maybe i should calculate these vars separately for clarity
+        print(block_start_locs[i],combo.rating_duration[block_start_locs[i]-1],combo.end[block_start_locs[i-1]], combo.onset[block_start_locs[i]-1])
+        combo.rating_duration[block_start_locs[i]-1]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i]-1]
+
+
+#for i in range(1,len(combo)):
+#    if i in block_start_locs:
+        #combo.rating_duration[i]= combo.block_end - combo.onset
+#        combo.rating_duration[i-1]=combo.loc[i].end - combo.onset[i-1]
+#        print ("hi")
+
+#('button_press', 'rating_equal_to9')
+#('button_press', 'rating_equal_to9')
+#('button_press', 'rating_equal_to7')
+#('button_press', 'rating_equal_to4')
+    #if pd.notnull(combo['trial_type'].shift(-1)):
+        #print(combo['participant_rating'])
+#combo.loc[block_start_locs].end
+print(block_start_locs)
+combo
+
+
+# In[50]:
 
 
 [{(combo['trial_type'][t[i]],combo['stim_file'][t[i]]): {'start':(t[i], combo['onset'][t[i]]),'end':(t[i+1]-1,combo['onset'][t[i]]+combo['duration'][t[i]])}} for i in range(len(t)-1)]
