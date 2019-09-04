@@ -106,13 +106,15 @@ def combine_dfs(blocks,ratings):
     return(combo)
 
 
-# In[3]:
+# In[41]:
 
 
 pd.set_option('display.max_rows', 100)
+avg=[]
+avg[1]
 
 
-# In[14]:
+# In[57]:
 
 
 mask = pd.notnull(combo['trial_type'])
@@ -121,10 +123,29 @@ block_start_locs=combo[mask].index.values
 #yay so this type of command can output a number for every two seconds, maybe would appenbd an end of trial number at the end? for the final running avg that isnt actually 2 secs
 test = np.arange(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]],step=20000)
 
-print(test)
+#print(test)
 
 #so put this into a for loop!
-avg_rows=combo.onset.between(test[0],test[1],inclusive=True) & pd.notnull(combo.event_type) #should probably find a better way than nulls to denote different types
+#need to handle an exception if theres nothing in between - to just keep it at same as prior.
+combo.onset.between(test[2],test[3],inclusive=True) & pd.notnull(combo.event_type) #should probably find a better way than nulls to denote different types
+combo.loc[combo.onset.between(test[2],test[3],inclusive=True) & pd.notnull(combo.event_type)]
+
+avg=[]
+lastval=[]
+
+#get rid of the -1 eventually lol
+
+#okay so i am sort of getting there? 
+for i in range(len(test)-1):
+    rows=combo.loc[combo.onset.between(test[i],test[i+1],inclusive=True) & pd.notnull(combo.event_type)]
+    if len(rows)==0: #this will never happen at the beginning bc the first timepoint always has a default value
+        lastval.append(lastval[i-1])
+        avg.append(lastval[i-1])
+        #print(lastval)
+    else:
+        avg.append(99999)
+        lastval.append(rows.participant_rating.iloc[[-1]])
+avg, lastval
 
 
 # In[4]:
