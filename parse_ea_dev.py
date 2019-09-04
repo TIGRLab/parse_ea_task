@@ -1,14 +1,14 @@
 
 # coding: utf-8
 
-# In[7]:
+# In[1]:
 
 
 import pandas as pd
 import numpy as np
 
 
-# In[123]:
+# In[2]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -106,20 +106,28 @@ def combine_dfs(blocks,ratings):
     return(combo)
 
 
-# In[110]:
+# In[3]:
 
 
 pd.set_option('display.max_rows', 100)
 
 
-# In[113]:
+# In[14]:
 
 
-new_row={'onset':50000,'duration':92222222222222222222222222222222222}
-combo.append(new_row, ignore_index=True)
+mask = pd.notnull(combo['trial_type'])
+block_start_locs=combo[mask].index.values
+
+#yay so this type of command can output a number for every two seconds, maybe would appenbd an end of trial number at the end? for the final running avg that isnt actually 2 secs
+test = np.arange(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]],step=20000)
+
+print(test)
+
+#so put this into a for loop!
+avg_rows=combo.onset.between(test[0],test[1],inclusive=True) & pd.notnull(combo.event_type) #should probably find a better way than nulls to denote different types
 
 
-# In[124]:
+# In[4]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -157,7 +165,6 @@ mask = pd.notnull(combo['trial_type'])
     
     
     
-block_start_locs=combo[mask].index.values
 
     #so one way to do this would be to make durations visible everywhere
 
