@@ -135,7 +135,7 @@ lastval=[]
 
 #get rid of the -1 eventually lol
 
-#okay so i am sort of getting there? 
+#okay so i am sort of getting there? But still have a lot of fixing to do tbh.
 for i in range(len(test)-1):
     rows=combo.loc[combo.onset.between(test[i],test[i+1],inclusive=True) & pd.notnull(combo.event_type)]
     if len(rows)==0: #this will never happen at the beginning bc the first timepoint always has a default value
