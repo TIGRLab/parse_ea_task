@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[2]:
+# In[11]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -62,6 +62,8 @@ def get_ratings(log):
     df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
     #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
     
+    df['participant_rating'] = df['participant_rating'].str.strip().str[-1]
+    
     #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
     #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
 
@@ -106,7 +108,7 @@ def combine_dfs(blocks,ratings):
     return(combo)
 
 
-# In[41]:
+# In[3]:
 
 
 pd.set_option('display.max_rows', 100)
@@ -114,7 +116,7 @@ avg=[]
 avg[1]
 
 
-# In[57]:
+# In[10]:
 
 
 mask = pd.notnull(combo['trial_type'])
@@ -145,10 +147,14 @@ for i in range(len(test)-1):
     else:
         avg.append(99999)
         lastval.append(rows.participant_rating.iloc[[-1]])
-avg, lastval
+
+#avg, lastval
 
 
-# In[4]:
+combo
+
+
+# In[12]:
 
 
 #Reads in the log, skipping the first three preamble lines
