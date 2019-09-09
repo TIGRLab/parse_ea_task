@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[11]:
+# In[13]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -62,6 +62,7 @@ def get_ratings(log):
     df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
     #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
     
+    #gets rating substring from participant numbers
     df['participant_rating'] = df['participant_rating'].str.strip().str[-1]
     
     #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
@@ -116,7 +117,7 @@ avg=[]
 avg[1]
 
 
-# In[10]:
+# In[103]:
 
 
 mask = pd.notnull(combo['trial_type'])
@@ -133,7 +134,7 @@ combo.onset.between(test[2],test[3],inclusive=True) & pd.notnull(combo.event_typ
 combo.loc[combo.onset.between(test[2],test[3],inclusive=True) & pd.notnull(combo.event_type)]
 
 avg=[]
-lastval=[]
+lastval=pd.DataFrame()
 
 #get rid of the -1 eventually lol
 
@@ -141,20 +142,100 @@ lastval=[]
 for i in range(len(test)-1):
     rows=combo.loc[combo.onset.between(test[i],test[i+1],inclusive=True) & pd.notnull(combo.event_type)]
     if len(rows)==0: #this will never happen at the beginning bc the first timepoint always has a default value
-        lastval.append(lastval[i-1])
-        avg.append(lastval[i-1])
+        #lastval=lastval.append(lastval.iloc(i-1))
+        avg.append(lastval.iloc(i)) #adds the last value for when theres no avg to calculate
         #print(lastval)
     else:
-        avg.append(99999)
-        lastval.append(rows.participant_rating.iloc[[-1]])
+        #avg.append(calc_avg(rows)) #make a calc_avg function
+        lastval=lastval.append(rows.iloc[[-1]])
 
-#avg, lastval
-
-
-combo
+lastval
 
 
-# In[12]:
+
+combo[combo['onset'].between(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]])]
+
+
+# In[ ]:
+
+
+combo[combo['onset'].between(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]])]
+
+
+# In[100]:
+
+
+#aaah except for things that have too long a rating duration and spill into the last one
+
+#should i pass the previous value into the function as well?
+
+#denom will always be 2 seconds! (wait unless it's at the end of a block aa...)
+denom= test[14] - test[13]
+
+rows=combo.loc[combo.onset.between(test[13],test[14],inclusive=True) & pd.notnull(combo.event_type)]
+
+last_row= combo.loc[combo.onset.between(test[12],test[13],inclusive=True) & pd.notnull(combo.event_type)].iloc[[-1]]
+
+
+rating_len=[]
+participant_rating=[]
+
+
+#OKAY so making an average needs: the rows in this block, plus the rows in the last row - 
+#why dont i just select anything with onset between the things, plus the row right before
+
+
+#then for each row:
+    #if onset<start 
+        #and onset+duration>start (just to be safe)
+            #numerator = (onset+duration)-start
+    #elif onset>=start
+        #and onset+duration <= end
+            #numerator = duration
+        #and onset+duration>end
+            #numerator=end-onset
+    #rating_value=rating_value :) 
+    #also the sum of numerator should = denom
+
+#for previous row:
+if previous_onset+previous_duration > test[13]:
+    rating_len.append((previous_onset+previous_duration) - test[13])
+else:
+    rating_len.append(0)
+
+participant_rating.append(previous_rating)
+
+for index, row in rows.iterrows():
+    #for rows that are in the thing
+    if row.onset+row.rating_duration <= test[14]:
+        rating_len.append(rating_duration)
+    elif row.onset+row.rating_duration > test[14]:
+        rating_len.append(test[14]-row.onset)
+
+    participant_rating.append(row.participant_rating)
+
+
+num=row.participant_rating*(row.rating_duration/denom)if onset+rating_duration < test[14] else participant_rating*((onset - test[14]))
+
+
+
+
+
+
+# In[98]:
+
+
+denom= test[14] - test[13]
+
+rows=combo.loc[combo.onset.between(test[13],test[14],inclusive=True) & pd.notnull(combo.event_type)]
+
+
+rows.iloc[[-1]]
+
+rows
+
+
+# In[14]:
 
 
 #Reads in the log, skipping the first three preamble lines
