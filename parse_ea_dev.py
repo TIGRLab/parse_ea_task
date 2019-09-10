@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[13]:
+# In[111]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -63,7 +63,7 @@ def get_ratings(log):
     #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
     
     #gets rating substring from participant numbers
-    df['participant_rating'] = df['participant_rating'].str.strip().str[-1]
+    df['participant_rating'] = df['participant_rating'].str.strip().str[-1] #do i have to add a .astype to this?
     
     #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
     #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
@@ -101,7 +101,8 @@ def combine_dfs(blocks,ratings):
             new_row={'onset':combo.onset[i],
             'rating_duration':combo.onset[i+1] - combo.onset[i],
             'event_type':'default_rating',
-            'duration':0}
+            'duration':0,
+            'participant_rating':5}
             combo=combo.append(new_row,ignore_index=True)
         
     combo=combo.sort_values("onset").reset_index(drop=True)
@@ -156,10 +157,89 @@ lastval
 combo[combo['onset'].between(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]])]
 
 
-# In[ ]:
+# In[174]:
 
 
-combo[combo['onset'].between(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]])]
+mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers
+block_start_locs=combo[mask].index.values
+
+
+block_start=combo.onset[block_start_locs[0]]
+block_end=combo.end[block_start_locs[0]]
+
+#selects the rows between the start and the end that contain button presses
+block = combo[combo['onset'].between(block_start, block_end) & pd.notnull(combo.event_type)] #between is inclusive by default
+
+###############################################################################################
+
+interval = np.arange(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]],step=20000)
+
+
+interval=np.append(interval, block_end) #this is to append for the remaining fraction of a second - maybe i dont need to do this
+
+#why is this not doing what it is supposed to do.
+#these ifs are NOT working
+
+for x in range(len(interval)-1):
+    start=interval[x]
+    end=interval[x+1]
+    #things that start within the time interval plus the one that starts during the time interval
+    sub_block= block[block['onset'].between(start,end) | block['onset'].between(start,end).shift(-1)]
+    block_length=end-start
+    if len(sub_block) !=0: 
+        ratings=[]
+        last_val=sub_block.participant_rating.iloc[[-1]]
+        for index, row in sub_block.iterrows():
+            #for rows that are in the thing
+            if (row.onset < start): #and (row.onset+row.duration)>start: #what's the best order to do these conditionals in?
+                #if (row.onset+row.duration)>start: # this is just to be safe i guess, gonna see what happens if i comment it out
+                numerator=(row.onset+row.rating_duration)-start
+            else:#if row.onset>=start and row.onset<end: #ooo should i do row.onset<end for everything??
+                if (row.onset+row.rating_duration) <= end:
+                    numerator=row.rating_duration
+                elif (row.onset+row.rating_duration) > end: 
+                    numerator = end - row.onset
+                else:
+                    numerator=9999999
+            last_row=row.participant_rating
+            ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_rating, 'time_held':numerator})#, 'start': start, 'end':end})
+            nums= [float(d['rating']) for d in ratings]
+            times=[float(d['time_held'])/block_length for d in ratings]
+            avg=np.sum(np.multiply(nums,times))
+        print(avg)
+    else:
+        print(last_row)
+
+
+        
+#     if row.onset+row.rating_duration <= test[14]:
+#         rating_len.append(rating_duration)
+#     elif row.onset+row.rating_duration > test[14]:
+#         rating_len.append(test[14]-row.onset)
+
+#     participant_rating.append(row.participant_rating)
+
+
+
+#then for each row:
+    #if onset<start 
+        #and onset+duration>start (just to be safe)
+            #numerator = (onset+duration)-start
+    #elif onset>=start
+        #and onset+duration <= end
+            #numerator = duration
+        #and onset+duration>end
+            #numerator=end-onset
+    #rating_value=rating_value :) 
+    #also the sum of numerator should = denom
+
+
+# In[127]:
+
+
+start=interval[13]
+end=interval[14]
+block['onset'].between(start,end)
 
 
 # In[100]:
@@ -235,7 +315,7 @@ rows.iloc[[-1]]
 rows
 
 
-# In[14]:
+# In[112]:
 
 
 #Reads in the log, skipping the first three preamble lines
