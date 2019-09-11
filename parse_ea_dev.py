@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 
-# In[111]:
+# In[54]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -47,6 +47,16 @@ def format_vid_info(vid):
     vid = vid.to_dict()
     return(vid)
 
+
+def read_in_standard(timing_path):
+    df = pd.read_csv(timing_path).astype(str)
+    df.columns = map(str.lower, df.columns)
+    df_dict = df.drop([0,0]).reset_index(drop=True).to_dict(orient='list') #drops the video name
+    return(df_dict)
+
+def get_series_standard(gold_standard, block_name):
+    
+    return([float(x) for x in ratings_dict[block_name] if x != 'nan'])
 
 
 def get_ratings(log):
@@ -110,6 +120,13 @@ def combine_dfs(blocks,ratings):
     return(combo)
 
 
+# In[49]:
+
+
+
+ratings_dict= read_in_standard('EA-timing.csv')
+
+
 # In[3]:
 
 
@@ -157,7 +174,7 @@ lastval
 combo[combo['onset'].between(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]])]
 
 
-# In[174]:
+# In[53]:
 
 
 mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers
@@ -169,7 +186,7 @@ block_end=combo.end[block_start_locs[0]]
 
 #selects the rows between the start and the end that contain button presses
 block = combo[combo['onset'].between(block_start, block_end) & pd.notnull(combo.event_type)] #between is inclusive by default
-
+block_name= combo.movie_name[combo['onset'].between(block_start, block_end) & pd.notnull(combo.movie_name)].astype(str).get(0) 
 ###############################################################################################
 
 interval = np.arange(combo.onset[block_start_locs[0]], combo.end[block_start_locs[0]],step=20000)
@@ -179,7 +196,7 @@ interval=np.append(interval, block_end) #this is to append for the remaining fra
 
 #why is this not doing what it is supposed to do.
 #these ifs are NOT working
-
+two_s_avg=[]
 for x in range(len(interval)-1):
     start=interval[x]
     end=interval[x+1]
@@ -203,14 +220,15 @@ for x in range(len(interval)-1):
                     numerator=9999999
             last_row=row.participant_rating
             ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_rating, 'time_held':numerator})#, 'start': start, 'end':end})
-            nums= [float(d['rating']) for d in ratings]
+            nums=[float(d['rating']) for d in ratings]
             times=[float(d['time_held'])/block_length for d in ratings]
             avg=np.sum(np.multiply(nums,times))
-        print(avg)
     else:
-        print(last_row)
+        avg=last_row
+        
+    two_s_avg.append(float(avg))
 
-
+print(two_s_avg)
         
 #     if row.onset+row.rating_duration <= test[14]:
 #         rating_len.append(rating_duration)
@@ -232,6 +250,8 @@ for x in range(len(interval)-1):
             #numerator=end-onset
     #rating_value=rating_value :) 
     #also the sum of numerator should = denom
+
+gold_standard=[float(x) for x in ratings_dict[block_name] if x != 'nan']
 
 
 # In[127]:
@@ -315,7 +335,7 @@ rows.iloc[[-1]]
 rows
 
 
-# In[112]:
+# In[25]:
 
 
 #Reads in the log, skipping the first three preamble lines
