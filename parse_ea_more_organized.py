@@ -141,26 +141,25 @@ combo=combine_dfs(blocks,ratings)
 combo
 
 
-# In[23]:
+# In[60]:
 
 
 ratings_dict= read_in_standard('EA-timing.csv')
 
 mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers
 block_start_locs=combo[mask].index.values
+for idx in range(1, len(block_start_locs)):
 
-for idx in range(len(block_start_locs)):
-
-    block_start=combo.onset[block_start_locs[idx]]
-    block_end=combo.end[block_start_locs[idx]]
+    block_start=combo.onset[block_start_locs[idx-1]]
+    block_end=combo.end[block_start_locs[idx-1]]
 
     #selects the rows between the start and the end that contain button presses
     #should just change this to select the rows, idk why not lol
-    block = combo[combo['onset'].between(block_start, block_end) & pd.notnull(combo.event_type)] #between is inclusive by default
-    block_name=combo.movie_name[combo['onset'].between(block_start, block_end) & pd.notnull(combo.movie_name)].astype(str).get(0) 
+    block = combo.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.event_type)]#between is inclusive by default
+    block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
     ###############################################################################################
 
-    interval = np.arange(combo.onset[block_start_locs[idx]], combo.end[block_start_locs[idx]],step=20000)
+    interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000)
 
 
     interval=np.append(interval, block_end) #this is to append for the remaining fraction of a second - maybe i dont need to do this
@@ -168,6 +167,7 @@ for idx in range(len(block_start_locs)):
     #why is this not doing what it is supposed to do.
     #these ifs are NOT working
     two_s_avg=[]
+    list_of_rows=[]
     for x in range(len(interval)-1):
         start=interval[x]
         end=interval[x+1]
@@ -197,15 +197,33 @@ for idx in range(len(block_start_locs)):
                 avg=np.sum(np.multiply(nums,times))
         else:
             avg=last_row
+        
 
         #okay so i want to change this to actually create the beginnings of an important row in our df!
         two_s_avg.append(float(avg))
+        list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start})
+    
+    
+    gold=get_series_standard(ratings_dict,block_name)
+    print(list_of_rows)
+    #print(block_name, two_s_avg, len(two_s_avg))
+    #print(block_name,gold , len(gold))
+        ##end this for loop
 
-block_start_locs
 
 
-# In[25]:
+# In[36]:
 
 
 combo.iloc[45:62]
+
+idx=1
+block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].astype(str).get(0) 
+block_name
+
+
+# In[31]:
+
+
+print(block_name)
 
