@@ -141,6 +141,12 @@ combo=combine_dfs(blocks,ratings)
 combo
 
 
+# In[ ]:
+
+
+#i'm wondering if i should maybe think more carefully about my architecture here in terms of what i need to calculate where.might try to refine this. 
+
+
 # In[60]:
 
 
