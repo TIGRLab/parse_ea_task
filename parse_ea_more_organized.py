@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[7]:
+# In[5]:
 
 
 import pandas as pd
@@ -122,7 +122,7 @@ def combine_dfs(blocks,ratings):
     return(combo)
 
 
-# In[17]:
+# In[7]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -147,13 +147,15 @@ combo
 #i'm wondering if i should maybe think more carefully about my architecture here in terms of what i need to calculate where.might try to refine this. 
 
 
-# In[60]:
+# In[28]:
 
 
 ratings_dict= read_in_standard('EA-timing.csv')
 
 mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers
 block_start_locs=combo[mask].index.values
+list_of_rows=[]
+
 for idx in range(1, len(block_start_locs)):
 
     block_start=combo.onset[block_start_locs[idx-1]]
@@ -164,16 +166,18 @@ for idx in range(1, len(block_start_locs)):
     block = combo.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.event_type)]#between is inclusive by default
     block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
     ###############################################################################################
+    gold=get_series_standard(ratings_dict,block_name)
 
     interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000)
 
+    if len(gold) < len(interval):
+        gold.extend([gold[-1]]*(len(interval)-len(gold)))
 
     interval=np.append(interval, block_end) #this is to append for the remaining fraction of a second - maybe i dont need to do this
 
     #why is this not doing what it is supposed to do.
     #these ifs are NOT working
     two_s_avg=[]
-    list_of_rows=[]
     for x in range(len(interval)-1):
         start=interval[x]
         end=interval[x+1]
@@ -204,18 +208,19 @@ for idx in range(1, len(block_start_locs)):
         else:
             avg=last_row
         
-
         #okay so i want to change this to actually create the beginnings of an important row in our df!
         two_s_avg.append(float(avg))
-        list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start})
+        list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
+    
+    print(np.corrcoef(gold,two_s_avg))
     
     
-    gold=get_series_standard(ratings_dict,block_name)
-    print(list_of_rows)
     #print(block_name, two_s_avg, len(two_s_avg))
     #print(block_name,gold , len(gold))
         ##end this for loop
-
+#print(list_of_rows)
+df=pd.DataFrame(data=list_of_rows)
+df
 
 
 # In[36]:
@@ -228,8 +233,14 @@ block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][
 block_name
 
 
-# In[31]:
+# In[23]:
 
 
-print(block_name)
+[gold[-1]]*(len(interval)-len(gold))
+
+
+# In[27]:
+
+
+np.corrcoef(gold,two_s_avg)
 
