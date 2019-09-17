@@ -196,7 +196,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[5]:
+# In[10]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -212,21 +212,18 @@ ratings = get_ratings(log)
 #add the ratings and the block values together, then sort them and make the index numbers sequential
 combo=combine_dfs(blocks,ratings)
 
-combo
+ratings_dict= read_in_standard('EA-timing.csv')
+
+two_s_chunks,scores = block_scores(ratings_dict,combo) #okay so i need to fix the naming here 
+
+
+combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc
 
 
 # In[ ]:
 
 
 #i'm wondering if i should maybe think more carefully about my architecture here in terms of what i need to calculate where.might try to refine this. 
-
-
-# In[6]:
-
-
-ratings_dict= read_in_standard('EA-timing.csv')
-
-block_scores(ratings_dict,combo)
 
 
 # In[36]:
