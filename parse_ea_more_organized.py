@@ -10,7 +10,7 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[98]:
+# In[102]:
 
 
 def read_in_logfile(path):
@@ -149,7 +149,10 @@ def block_scores(ratings_dict,combo):
         ###############################################################################################
         gold=get_series_standard(ratings_dict,block_name)
         
-        interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
+        if "cvid" in block_name:
+            interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=40000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
+        else:
+            interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
         
         if len(gold) < len(interval):
             interval=interval[:len(gold)]
@@ -207,7 +210,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[99]:
+# In[103]:
 
 
 #Reads in the log, skipping the first three preamble lines
