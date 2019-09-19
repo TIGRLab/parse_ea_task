@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import pandas as pd
@@ -10,7 +10,7 @@ import numpy as np
 pd.set_option('display.max_rows', 100) ##REMOVE IN SCRIPT
 
 
-# In[4]:
+# In[8]:
 
 
 def read_in_logfile(path, vid_lengths):
@@ -125,7 +125,7 @@ def combine_dfs(blocks,ratings):
 
 def block_scores(ratings_dict,combo):
     list_of_rows=[]
-    summary_vals = []
+    summary_vals = {}
     mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers #i feel like im recalculating that in lots of places, seems bad maybe
     block_start_locs=combo[mask].index.values
 
@@ -187,16 +187,19 @@ def block_scores(ratings_dict,combo):
 
             #okay so i want to change this to actually create the beginnings of an important row in our df!
             two_s_avg.append(float(avg))
-            list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
-
+            #list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
+            list_of_rows.append({'event_type':"two_sec_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
+            #removed block_name from above
         block_score=np.corrcoef(gold,two_s_avg)[1][0]
-        summary_vals.append({'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}) #i can probably not recalculate duration, just gotta remember how
+        key=str(block_name)
+        summary_vals.update({key:{'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}})
+        #summary_vals.append(block_name:{'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}) #i can probably not recalculate duration, just gotta remember how
     
     return(list_of_rows,summary_vals)
 
 
 
-# In[10]:
+# In[9]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -216,6 +219,8 @@ ratings_dict= read_in_standard('EA-timing.csv')
 
 two_s_chunks,scores = block_scores(ratings_dict,combo) #okay so i need to fix the naming here 
 
+
+print(scores)
 
 combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc
 
