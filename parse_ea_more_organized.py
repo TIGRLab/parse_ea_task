@@ -1,20 +1,24 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[71]:
 
 
 import pandas as pd
 import numpy as np
 
-pd.set_option('display.max_rows', 100) ##REMOVE IN SCRIPT
+pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[8]:
+# In[93]:
 
 
-def read_in_logfile(path, vid_lengths):
-    pd.read_csv(path, sep='\t', skip_rows=3)
+def read_in_logfile(path):
+    log_file=pd.read_csv(path, sep='\t', skiprows=3)
+
+    time_to_subtract=int(log_file.Time[log.Code=='MRI_start'])
+
+    log_file.Time=log_file.Time -time_to_subtract
     return log_file
 
 def get_blocks(log,vid_info):
@@ -25,7 +29,7 @@ def get_blocks(log,vid_info):
     df = pd.DataFrame({'onset':log.loc[mask]['Time'], 
                   'trial_type':log.loc[mask]['Event Type'], 
                   'movie_name':log.loc[mask]['Code']})
-    
+        
     #adds trial type info
     df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
 
@@ -127,8 +131,9 @@ def block_scores(ratings_dict,combo):
     list_of_rows=[]
     summary_vals = {}
     mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers #i feel like im recalculating that in lots of places, seems bad maybe
-    block_start_locs=combo[mask].index.values
-
+    block_start_locs=combo[mask].index.values #i could just append the end to that
+    block_start_locs= np.append(block_start_locs, combo.tail(1).index.values, axis=None)
+    
     for idx in range(1, len(block_start_locs)):
 
         block_start=combo.onset[block_start_locs[idx-1]]
@@ -138,11 +143,11 @@ def block_scores(ratings_dict,combo):
         #should just change this to select the rows, idk why not lol
         block = combo.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.event_type)]#between is inclusive by default
         block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
+        
         ###############################################################################################
         gold=get_series_standard(ratings_dict,block_name)
 
-        interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000)
-
+        interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
         if len(gold) < len(interval):
             interval=interval[:len(gold)]
             #todo: insert a warning that the participant ratings were truncated
@@ -190,22 +195,21 @@ def block_scores(ratings_dict,combo):
             #list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             list_of_rows.append({'event_type':"two_sec_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             #removed block_name from above
-        block_score=np.corrcoef(gold,two_s_avg)[1][0]
+        block_score=np.corrcoef(gold,two_s_avg)[1][0] 
         key=str(block_name)
-        summary_vals.update({key:{'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}})
+        summary_vals.update({key:{'block_score':block_score,'onset':block_start,'duration':block_end-block_start}})
         #summary_vals.append(block_name:{'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}) #i can probably not recalculate duration, just gotta remember how
     
     return(list_of_rows,summary_vals)
 
 
 
-# In[9]:
+# In[95]:
 
 
 #Reads in the log, skipping the first three preamble lines
-log=pd.read_csv('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEmpAcc_part1.log', sep='\t', skiprows=3)
 
-
+log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEmpAcc_part1.log')
 vid_in = pd.read_csv('EA-vid-lengths.csv')
 
 vid_info = format_vid_info(vid_in)
@@ -217,12 +221,22 @@ combo=combine_dfs(blocks,ratings)
 
 ratings_dict= read_in_standard('EA-timing.csv')
 
-two_s_chunks,scores = block_scores(ratings_dict,combo) #okay so i need to fix the naming here 
+two_s_chunks,scores= block_scores(ratings_dict,combo) #okay so i need to fix the naming here 
 
+combo['block_score']=np.nan
+#combo.ix[pd.notnull(combo.trial_type), 'block_score']=
 
-print(scores)
+#df[df.index.isin(a_list) & df.a_col.isnull()]
 
-combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc
+combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc #need to sort according to name too...
+
+test = combo.ix[pd.notnull(combo.trial_type)]
+
+for index, row in test.iterrows():
+    combo.block_score.ix[index]=scores[row['movie_name']]['block_score']
+    
+    
+combo
 
 
 # In[ ]:
@@ -247,14 +261,21 @@ block_name
 [gold[-1]]*(len(interval)-len(gold))
 
 
-# In[10]:
+# In[96]:
 
 
 np.corrcoef(gold,two_s_avg)[1][0]
 
 
-# In[15]:
+# In[53]:
 
 
-ratings,scores=block_scores(ratings_dict,combo)
+#ratings,scores=block_scores(ratings_dict,combo)
+combo.tail(1).index.values
+
+
+# In[89]:
+
+
+
 
