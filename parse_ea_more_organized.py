@@ -10,7 +10,7 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[93]:
+# In[98]:
 
 
 def read_in_logfile(path):
@@ -71,15 +71,15 @@ def get_ratings(log):
     #RT_mask=  ["Response" in log['Event Type'][i] and log['Code'][i]!="101"  for i in range(0,log.shape[0]-1)]  #this is from when i was doing it the response time way, but idk how i feel abt that
 
     #so now this grabs the timestamp from the row before (which is the actual onset) then applies the rating mask to that list of values
-    #df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+    #df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_value':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
     
     
     #switching it to not be from the row before because if it has a vid tag before it then it will get the wrong onset number
-    df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_rating':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+    df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_value':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
     #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
     
     #gets rating substring from participant numbers
-    df['participant_rating'] = df['participant_rating'].str.strip().str[-1] #do i have to add a .astype to this?
+    df['participant_value'] = df['participant_value'].str.strip().str[-1] #do i have to add a .astype to this?
     
     #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
     #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
@@ -118,7 +118,7 @@ def combine_dfs(blocks,ratings):
             'rating_duration':combo.onset[i+1] - combo.onset[i],
             'event_type':'default_rating',
             'duration':0,
-            'participant_rating':5}
+            'participant_value':5}
             combo=combo.append(new_row,ignore_index=True)
         
     combo=combo.sort_values("onset").reset_index(drop=True)
@@ -135,19 +135,22 @@ def block_scores(ratings_dict,combo):
     block_start_locs= np.append(block_start_locs, combo.tail(1).index.values, axis=None)
     
     for idx in range(1, len(block_start_locs)):
-
+            #df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
+        
         block_start=combo.onset[block_start_locs[idx-1]]
         block_end=combo.end[block_start_locs[idx-1]]
 
         #selects the rows between the start and the end that contain button presses
         #should just change this to select the rows, idk why not lol
+        
         block = combo.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.event_type)]#between is inclusive by default
         block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
         
         ###############################################################################################
         gold=get_series_standard(ratings_dict,block_name)
-
+        
         interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
+        
         if len(gold) < len(interval):
             interval=interval[:len(gold)]
             #todo: insert a warning that the participant ratings were truncated
@@ -168,7 +171,7 @@ def block_scores(ratings_dict,combo):
             block_length=end-start
             if len(sub_block) !=0: 
                 ratings=[]
-                last_val=sub_block.participant_rating.iloc[[-1]]
+                last_val=sub_block.participant_value.iloc[[-1]]
                 for index, row in sub_block.iterrows():
                     #for rows that are in the thing
                     if (row.onset < start): #and (row.onset+row.duration)>start: #what's the best order to do these conditionals in?
@@ -181,9 +184,9 @@ def block_scores(ratings_dict,combo):
                             numerator = end - row.onset
                         else:
                             numerator=9999999
-                    last_row=row.participant_rating
+                    last_row=row.participant_value
                     #okay so i want to change this to actually create the beginnings of an important row in our df!
-                    ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_rating, 'time_held':numerator})#, 'start': start, 'end':end})
+                    ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_value, 'time_held':numerator})#, 'start': start, 'end':end})
                     nums=[float(d['rating']) for d in ratings]
                     times=[float(d['time_held'])/block_length for d in ratings]
                     avg=np.sum(np.multiply(nums,times))
@@ -204,7 +207,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[95]:
+# In[99]:
 
 
 #Reads in the log, skipping the first three preamble lines
