@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[71]:
+# In[1]:
 
 
 import pandas as pd
@@ -10,15 +10,16 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[102]:
+# In[21]:
 
 
 def read_in_logfile(path):
     log_file=pd.read_csv(path, sep='\t', skiprows=3)
 
-    time_to_subtract=int(log_file.Time[log.Code=='MRI_start'])
+    time_to_subtract=int(log_file.Time[log_file.Code=='MRI_start'])
 
-    log_file.Time=log_file.Time -time_to_subtract
+    log_file.Time=log_file.Time-time_to_subtract
+    
     return log_file
 
 def get_blocks(log,vid_info):
@@ -156,10 +157,17 @@ def block_scores(ratings_dict,combo):
         
         if len(gold) < len(interval):
             interval=interval[:len(gold)]
+            print("warning:gold standard is shorter than the number of pt ratings, pt ratings truncated", block_name)
             #todo: insert a warning that the participant ratings were truncated
             #also this doesnt account for a situation where there are less ratings than the gold standard
             #which could absolutely be a thing if the task was truncated
             #gold.extend([gold[-1]]*(len(interval)-len(gold)))
+
+        if len(interval) > len(gold):
+            gold=gold[:len(interval)]
+            print("warning:number of pt ratings is shorter than the number of gold std,gold std truncated", block_name)
+            #todo: insert a warning that the participant ratings were truncated            
+            
 
         interval=np.append(interval, block_end) #this is to append for the remaining fraction of a second - maybe i dont need to do this
 
@@ -201,6 +209,9 @@ def block_scores(ratings_dict,combo):
             #list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             list_of_rows.append({'event_type':"two_sec_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             #removed block_name from above
+        print(len(gold),len(two_s_avg),block_name)
+        print(gold)
+        print(two_s_avg)
         block_score=np.corrcoef(gold,two_s_avg)[1][0] 
         key=str(block_name)
         summary_vals.update({key:{'block_score':block_score,'onset':block_start,'duration':block_end-block_start}})
@@ -210,12 +221,12 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[103]:
+# In[22]:
 
 
 #Reads in the log, skipping the first three preamble lines
 
-log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0001-UCLAEmpAcc_part1.log')
+log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0004-UCLAEmpAcc_part2.log')
 vid_in = pd.read_csv('EA-vid-lengths.csv')
 
 vid_info = format_vid_info(vid_in)
@@ -243,6 +254,9 @@ for index, row in test.iterrows():
     
     
 combo
+
+#NOTE" 
+#ok so tomorrow ive gotta figure out that error :( ) it occurs with 0004 part 2
 
 
 # In[ ]:
@@ -280,8 +294,8 @@ np.corrcoef(gold,two_s_avg)[1][0]
 combo.tail(1).index.values
 
 
-# In[89]:
+# In[23]:
 
 
-
+combo
 
