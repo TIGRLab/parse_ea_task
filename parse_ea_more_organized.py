@@ -10,7 +10,7 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[50]:
+# In[65]:
 
 
 def read_in_logfile(path):
@@ -210,7 +210,7 @@ def block_scores(ratings_dict,combo):
             #okay so i want to change this to actually create the beginnings of an important row in our df!
             two_s_avg.append(float(avg))
             #list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
-            list_of_rows.append({'event_type':"two_sec_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
+            list_of_rows.append({'event_type':"running_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             #removed block_name from above
             
         n_button_press=len(block[block.event_type=='button_press'].index)
@@ -223,7 +223,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[53]:
+# In[70]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -258,10 +258,13 @@ for index, row in test.iterrows():
     combo.n_button_press.ix[index]=scores[row['movie_name']]['n_button_press']
     combo.event_type.ix[index]='block_summary'
    
+    
+cols=['onset', 'duration','trial_type','event_type','participant_value','gold_std','block_score','n_button_press', 'stim_file']
+combo=combo[cols]
 
-    
-    
-combo
+
+
+combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a')
 
 #NOTE" 
 #ok so tomorrow ive gotta figure out that error :( ) it occurs with 0004 part 2
@@ -310,11 +313,10 @@ combo.tail(1).index.values
 
 
 
-# In[47]:
+# In[63]:
 
 
 n_button_press=len(block[block.event_type=='button_press'].index)
 n_button_press
 
-block
 
