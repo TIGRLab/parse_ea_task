@@ -272,6 +272,9 @@ combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a
 #I don't think the weighted average is being calculated correctly... -nvm it is! yay!
 
 
+#to do: convert to seconds, subtract the correct time from everything, check JV's code to see what he did and copy his time subtracting, bring stim_file down to all rows within a trial
+
+
 # In[ ]:
 
 
