@@ -10,7 +10,7 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[23]:
+# In[50]:
 
 
 def read_in_logfile(path):
@@ -18,7 +18,7 @@ def read_in_logfile(path):
 
     time_to_subtract=int(log_file.Time[log_file.Code=='MRI_start'])
 
-    log_file.Time=log_file.Time-time_to_subtract
+    log_file.Time=log_file.Time-time_to_subtract #subtracts mri start times from onset (i think... check what JV did...)
     
     return log_file
 
@@ -212,17 +212,18 @@ def block_scores(ratings_dict,combo):
             #list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             list_of_rows.append({'event_type':"two_sec_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
             #removed block_name from above
-
+            
+        n_button_press=len(block[block.event_type=='button_press'].index)
+        print(n_button_press)
         block_score=np.corrcoef(gold,two_s_avg)[1][0] 
         key=str(block_name)
-        summary_vals.update({key:{'block_score':block_score,'onset':block_start,'duration':block_end-block_start}})
+        summary_vals.update({key:{'n_button_press':int(n_button_press),'block_score':block_score,'onset':block_start,'duration':block_end-block_start}})
         #summary_vals.append(block_name:{'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}) #i can probably not recalculate duration, just gotta remember how
-    
     return(list_of_rows,summary_vals)
 
 
 
-# In[28]:
+# In[53]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -242,16 +243,22 @@ ratings_dict= read_in_standard('EA-timing.csv')
 two_s_chunks,scores= block_scores(ratings_dict,combo) #okay so i need to fix the naming here 
 
 combo['block_score']=np.nan
+combo['n_button_press']=np.nan
+
 #combo.ix[pd.notnull(combo.trial_type), 'block_score']=
 
 #df[df.index.isin(a_list) & df.a_col.isnull()]
 
 combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc #need to sort according to name too...
 
-test = combo.ix[pd.notnull(combo.trial_type)]
+test = combo.ix[pd.notnull(combo.stim_file)]
 
 for index, row in test.iterrows():
     combo.block_score.ix[index]=scores[row['movie_name']]['block_score']
+    combo.n_button_press.ix[index]=scores[row['movie_name']]['n_button_press']
+    combo.event_type.ix[index]='block_summary'
+   
+
     
     
 combo
@@ -297,101 +304,17 @@ np.corrcoef(gold,two_s_avg)[1][0]
 combo.tail(1).index.values
 
 
-# In[19]:
+# In[34]:
 
 
-list_of_rows=[]
-summary_vals = {}
-mask = pd.notnull(combo['trial_type']) #selects the beginning of trials/trial headers #i feel like im recalculating that in lots of places, seems bad maybe
-block_start_locs=combo[mask].index.values #i could just append the end to that
-block_start_locs= np.append(block_start_locs, combo.tail(1).index.values, axis=None)
-
-for idx in range(1, len(block_start_locs)):
-        #df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
-    
-    block_start=combo.onset[block_start_locs[idx-1]]
-    block_end=combo.end[block_start_locs[idx-1]]
-
-    #selects the rows between the start and the end that contain button presses
-    #should just change this to select the rows, idk why not lol
-    
-    block = combo.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.event_type)]#between is inclusive by default
-    block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
-    
-    ###############################################################################################
-    gold=get_series_standard(ratings_dict,block_name)
-    
-    if "cvid" in block_name:
-        interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=40000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
-    else:
-        interval = np.arange(combo.onset[block_start_locs[idx-1]], combo.end[block_start_locs[idx-1]],step=20000) #AAA oh no this only applies to the vid not the cvid (put a conditional here)
-    
-    
-
-    #todo: remove print statements lol
-
-    if len(gold) < len(interval):
-        interval=interval[:len(gold)]
-        print("warning:gold standard is shorter than the number of pt ratings, pt ratings truncated", block_name)
-        #todo: insert a warning that the participant ratings were truncated
-        #also this doesnt account for a situation where there are less ratings than the gold standard
-        #which could absolutely be a thing if the task was truncated
-        #gold.extend([gold[-1]]*(len(interval)-len(gold)))
-
-    if len(interval) < len(gold):
-        gold=gold[:len(interval)]
-        print("warning:number of pt ratings is shorter than the number of gold std,gold std truncated", block_name)
-        #todo: insert a warning that the participant ratings were truncated            
-    
-    interval=np.append(interval, block_end) #this is to append for the remaining fraction of a second (so that the loop goes to the end i guess...)- maybe i dont need to do this
-
-    #why is this not doing what it is supposed to do.
-    #these ifs are NOT working
-    two_s_avg=[]
-    for x in range(len(interval)-1):
-        start=interval[x]
-        end=interval[x+1]
-        #things that start within the time interval plus the one that starts during the time interval
-        sub_block= block[block['onset'].between(start,end) | block['onset'].between(start,end).shift(-1)]
-        block_length=end-start
-        if len(sub_block) !=0: 
-            ratings=[]
-            last_val=sub_block.participant_value.iloc[[-1]]
-            for index, row in sub_block.iterrows():
-                #for rows that are in the thing
-                if (row.onset < start): #and (row.onset+row.duration)>start: #what's the best order to do these conditionals in?
-                    #if (row.onset+row.duration)>start: # this is just to be safe i guess, gonna see what happens if i comment it out
-                    numerator=(row.onset+row.rating_duration)-start
-                else:#if row.onset>=start and row.onset<end: #ooo should i do row.onset<end for everything??
-                    if (row.onset+row.rating_duration) <= end:
-                        numerator=row.rating_duration
-                    elif (row.onset+row.rating_duration) > end: 
-                        numerator = end - row.onset
-                    else:
-                        numerator=9999999
-                last_row=row.participant_value
-                #okay so i want to change this to actually create the beginnings of an important row in our df!
-                ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_value, 'time_held':numerator})#, 'start': start, 'end':end})
-                nums=[float(d['rating']) for d in ratings]
-                times=[float(d['time_held'])/block_length for d in ratings]
-                avg=np.sum(np.multiply(nums,times))
-        else:
-            avg=last_row
-
-        #okay so i want to change this to actually create the beginnings of an important row in our df!
-        two_s_avg.append(float(avg))
-        #list_of_rows.append({'event_type':"two_sec_avg",'block_name':block_name, 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
-        list_of_rows.append({'event_type':"two_sec_avg", 'participant_value':float(avg),'onset':start,'duration':end-start, 'gold_std': gold[x]})
-        #removed block_name from above
-        
-    block_score=np.corrcoef(gold,two_s_avg)[1][0] 
-    key=str(block_name)
-    summary_vals.update({key:{'block_score':block_score,'onset':block_start,'duration':block_end-block_start}})
-    #summary_vals.append(block_name:{'block_score':block_score,'block_name':block_name,'onset':block_start,'duration':block_end-block_start}) #i can probably not recalculate duration, just gotta remember how
 
 
-# In[15]:
+
+# In[47]:
 
 
-len(gold[:len(interval)])
+n_button_press=len(block[block.event_type=='button_press'].index)
+n_button_press
+
+block
 
