@@ -10,13 +10,13 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[10]:
+# In[16]:
 
 
 def read_in_logfile(path):
     log_file=pd.read_csv(path, sep='\t', skiprows=3)
 
-    time_to_subtract=int(log_file.Time[log_file.Code=='MRI_start'])
+    time_to_subtract=int(log_file.Duration[log_file.Code=='MRI_start'])
 
     log_file.Time=log_file.Time-time_to_subtract #subtracts mri start times from onset (i think... check what JV did...)
     
@@ -223,7 +223,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[15]:
+# In[18]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -267,7 +267,8 @@ combo.duration=combo.duration/10000.0
 combo.stim_file=combo.stim_file.ffill(axis=0)
 
 
-combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a')
+combo
+#combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a')
 
 #NOTE" 
 #ok so tomorrow ive gotta figure out that error :( ) it occurs with 0004 part 2
