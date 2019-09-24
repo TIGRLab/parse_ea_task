@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import pandas as pd
@@ -10,7 +10,7 @@ import numpy as np
 pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
 
 
-# In[65]:
+# In[10]:
 
 
 def read_in_logfile(path):
@@ -223,7 +223,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[70]:
+# In[15]:
 
 
 #Reads in the log, skipping the first three preamble lines
@@ -262,6 +262,9 @@ for index, row in test.iterrows():
 cols=['onset', 'duration','trial_type','event_type','participant_value','gold_std','block_score','n_button_press', 'stim_file']
 combo=combo[cols]
 
+combo['onset']=combo.onset/10000.0
+combo.duration=combo.duration/10000.0
+combo.stim_file=combo.stim_file.ffill(axis=0)
 
 
 combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a')
@@ -310,10 +313,18 @@ np.corrcoef(gold,two_s_avg)[1][0]
 combo.tail(1).index.values
 
 
+# In[14]:
+
+
+combo.stim_file=combo.stim_file.ffill(axis=0)
+combo
+
+
 # In[34]:
 
 
 
+combo
 
 
 # In[63]:
