@@ -7,25 +7,25 @@
 import pandas as pd
 import numpy as np
 
-pd.set_option('display.max_rows', 400) ##REMOVE IN SCRIPT
-
 
 # In[16]:
 
 
+#reads in log file and subtracts the initial TRs/MRI startup time
 def read_in_logfile(path):
     log_file=pd.read_csv(path, sep='\t', skiprows=3)
 
     time_to_subtract=int(log_file.Duration[log_file.Code=='MRI_start'])
 
-    log_file.Time=log_file.Time-time_to_subtract #subtracts mri start times from onset (i think... check what JV did...)
+    log_file.Time=log_file.Time-time_to_subtract #subtracts mri start times from all onset times
     
     return log_file
 
+#Grabs the starts of blocks and returns rows for them
 def get_blocks(log,vid_info):
     #identifies the video trial types (as opposed to button press events etc)
     mask = ["vid" in log['Code'][i] for i in range(0,log.shape[0])]
-    #this isnt totally right lol
+    
     #creates the dataframe with onset times and event types
     df = pd.DataFrame({'onset':log.loc[mask]['Time'], 
                   'trial_type':log.loc[mask]['Event Type'], 
@@ -34,77 +34,64 @@ def get_blocks(log,vid_info):
     #adds trial type info
     df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
 
-    #add durations and convert them into the units here? ms??
+    #add durations and convert them into the units here? 10000ths of seconds
     df['duration']=df['movie_name'].apply(lambda x: int(vid_info[x]['duration'])*10000 if x in vid_info else "n/a")
 
-    #I don't actually know what the stim files are called for the circle ones - also these names aren't exact,gotta figure out a way to get exact file names
+    #adds names of stim_files, according to the vid_info spreadsheet
     df['stim_file']=df['movie_name'].apply(lambda x: vid_info[x]['stim_file'] if x in vid_info else "n/a") 
     
-    
+    #adds an end column to the beginning of blocks (it's useful for processing but will remove later)
     df['end']=df['onset']+df['duration']
 
         
     return(df)
 
-
-    
+#grabs stimulus metadata
 def format_vid_info(vid):
     vid.columns = map(str.lower, vid.columns)
-    vid = vid.rename(index={0:"stim_file", 1:"duration"})
+    vid = vid.rename(index={0:"stim_file", 1:"duration"}) #grabs the file name and the durations from the info file
     vid = vid.to_dict()
     return(vid)
 
-
+#Reads in gold standard answers
 def read_in_standard(timing_path):
     df = pd.read_csv(timing_path).astype(str)
     df.columns = map(str.lower, df.columns)
     df_dict = df.drop([0,0]).reset_index(drop=True).to_dict(orient='list') #drops the video name
     return(df_dict)
 
+#grabs gold standards as a series
 def get_series_standard(gold_standard, block_name):
     
     return([float(x) for x in ratings_dict[block_name] if x != 'nan'])
 
-
+#grabs partcipant ratings
 def get_ratings(log):
-    #the times in this row are EXTREMELY close to the other times. This isn't EEG, I think we're prolly ok
+    
     rating_mask = ["rating" in log['Code'][i] for i in range(0,log.shape[0])]  
-    #RT_mask=  ["Response" in log['Event Type'][i] and log['Code'][i]!="101"  for i in range(0,log.shape[0]-1)]  #this is from when i was doing it the response time way, but idk how i feel abt that
 
-    #so now this grabs the timestamp from the row before (which is the actual onset) then applies the rating mask to that list of values
-    #df = pd.DataFrame({'onset':log['Time'].shift(1).loc[rating_mask].values, 'participant_value':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
-    
-    
-    #switching it to not be from the row before because if it has a vid tag before it then it will get the wrong onset number
+    #So this grabs from the stim row and not the button press row, but there's like 50 10000ths of a second difference so i feel fine doing that. otherwise it creates risk for other errors if the sheets are weird.
+    #gives the time and value of the partiicipant rating
     df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_value':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})    
+   
     #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
     
     #gets rating substring from participant numbers
-    df['participant_value'] = df['participant_value'].str.strip().str[-1] #do i have to add a .astype to this?
+    df['participant_value'] = df['participant_value'].str.strip().str[-1]
     
-    #TODO: probably remove this from this function and rewrite it in the place where i combine the ratings and block info
-    #df['rating_duration'] = df.onset.shift(-1)-df.onset #this isnt totally correct bc of the stuff.
-
     return(df)
 
-
+#combines the block rows with the ratings rows and sorts them
 def combine_dfs(blocks,ratings):
     combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
 
     mask = pd.notnull(combo['trial_type'])
-    #combo['end_time']=combo['onset']-combo['onset'].shift(1)
 
-    combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) #hmm but how do i make the ones in the end of the row? because those actually should calculate from block_end, not from the beginning of the next guy...
-    #this one is tricky!!
+    combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False) 
 
     block_start_locs=combo[mask].index.values
 
-    #so one way to do this would be to make durations visible everywhere
-
-    #can i do for i in block_start_locs
-
-    #yay! fixes the rating for the last button press of a series!
-    #gives a SettingWithCopy warning
+   
     #TODO: fix this lol
     #this ends up not assigning a value for the final button press - there must be a more elegant way to do all this
     for i in range(len(block_start_locs)):
@@ -127,7 +114,7 @@ def combine_dfs(blocks,ratings):
     return(combo)
 
 
-
+#calculates pearsons r by comparing participant ratings w a gold standard 
 def block_scores(ratings_dict,combo):
     list_of_rows=[]
     summary_vals = {}
@@ -157,7 +144,7 @@ def block_scores(ratings_dict,combo):
 
 
 
-        #todo: remove print statements lol
+        #todo: remove print statements lol, turn them into logger things.
 
         if len(gold) < len(interval):
             interval=interval[:len(gold)]
@@ -271,7 +258,7 @@ combo
 
 #TODO NEXT: put into a script yay!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-#combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a')
+combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a', index=False)
 
 #NOTE" 
 #ok so tomorrow ive gotta figure out that error :( ) it occurs with 0004 part 2
