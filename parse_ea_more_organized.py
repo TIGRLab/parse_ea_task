@@ -223,12 +223,12 @@ def block_scores(ratings_dict,combo):
 
 
 
-# In[18]:
+# In[21]:
 
 
 #Reads in the log, skipping the first three preamble lines
 
-log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0004-UCLAEmpAcc_part2.log')
+log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0004-UCLAEmpAcc_part3.log')
 vid_in = pd.read_csv('EA-vid-lengths.csv')
 
 vid_info = format_vid_info(vid_in)
@@ -268,6 +268,9 @@ combo.stim_file=combo.stim_file.ffill(axis=0)
 
 
 combo
+
+#TODO NEXT: put into a script yay!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 #combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a')
 
 #NOTE" 
