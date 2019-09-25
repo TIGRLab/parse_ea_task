@@ -19,6 +19,8 @@ Requires:
 import pandas as pd
 import numpy as np
 from docopt import docopt
+import re
+import os
 
 
 #reads in log file and subtracts the initial TRs/MRI startup time
@@ -253,7 +255,11 @@ def main():
     combo.duration=combo.duration/10000.0
     combo.stim_file=combo.stim_file.ffill(axis=0)
 
-    combo.to_csv('{}_parsed.tsv'.format(log_file), sep='\t', na_rep='n/a', index=False)
+    log_head, log_tail =os.path.split(log_file)
+
+    file_name=re.sub('.log$','',log_tail)
+
+    combo.to_csv('{}_parsed.tsv'.format(file_name), sep='\t', na_rep='n/a', index=False)
 
 
 if __name__ == "__main__":
