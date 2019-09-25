@@ -209,7 +209,6 @@ def block_scores(ratings_dict,combo):
             #removed block_name from above
 
         n_button_press=len(block[block.event_type=='button_press'].index)
-        print(n_button_press)
         block_score=np.corrcoef(gold,two_s_avg)[1][0]
         key=str(block_name)
         summary_vals.update({key:{'n_button_press':int(n_button_press),'block_score':block_score,'onset':block_start,'duration':block_end-block_start}})
