@@ -67,8 +67,7 @@ def read_in_standard(timing_path):
 
 #grabs gold standards as a series
 def get_series_standard(gold_standard, block_name):
-
-    return([float(x) for x in ratings_dict[block_name] if x != 'nan'])
+    return([float(x) for x in gold_standard[block_name] if x != 'nan'])
 
 #grabs partcipant ratings
 def get_ratings(log):
