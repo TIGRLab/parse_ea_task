@@ -154,6 +154,7 @@ def block_scores(ratings_dict,combo):
 
         if len(gold) < len(interval):
             interval=interval[:len(gold)]
+            #TODO: convert this to logger stuff eventually
             print("warning:gold standard is shorter than the number of pt ratings, pt ratings truncated", block_name)
             #todo: insert a warning that the participant ratings were truncated
             #also this doesnt account for a situation where there are less ratings than the gold standard
@@ -162,6 +163,7 @@ def block_scores(ratings_dict,combo):
 
         if len(interval) < len(gold):
             gold=gold[:len(interval)]
+            #TODO: convert this to logger stuff eventually
             print("warning:number of pt ratings is shorter than the number of gold std,gold std truncated", block_name)
             #todo: insert a warning that the participant ratings were truncated
 
