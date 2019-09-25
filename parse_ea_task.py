@@ -255,3 +255,7 @@ def main():
     combo.stim_file=combo.stim_file.ffill(axis=0)
 
     combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a', index=False)
+
+
+if __name__ == "__main__":
+    main()
