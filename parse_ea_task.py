@@ -194,52 +194,53 @@ def block_scores(ratings_dict,combo):
     return(list_of_rows,summary_vals)
 
 
-#Reads in the log, skipping the first three preamble lines
+def main():
 
-log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0004-UCLAEmpAcc_part3.log')
-vid_in = pd.read_csv('EA-vid-lengths.csv')
+    #Reads in the log, skipping the first three preamble lines
+    log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0004-UCLAEmpAcc_part3.log')
+    vid_in = pd.read_csv('EA-vid-lengths.csv')
 
-vid_info = format_vid_info(vid_in)
-blocks = get_blocks(log, vid_info)
-ratings = get_ratings(log)
+    vid_info = format_vid_info(vid_in)
+    blocks = get_blocks(log, vid_info)
+    ratings = get_ratings(log)
 
-#add the ratings and the block values together, then sort them and make the index numbers sequential
-combo=combine_dfs(blocks,ratings)
+    #add the ratings and the block values together, then sort them and make the index numbers sequential
+    combo=combine_dfs(blocks,ratings)
 
-ratings_dict= read_in_standard('EA-timing.csv')
+    ratings_dict= read_in_standard('EA-timing.csv')
 
-two_s_chunks,scores= block_scores(ratings_dict,combo) #okay so i need to fix the naming here
+    two_s_chunks,scores= block_scores(ratings_dict,combo) #okay so i need to fix the naming here
 
-combo['block_score']=np.nan
-combo['n_button_press']=np.nan
+    combo['block_score']=np.nan
+    combo['n_button_press']=np.nan
 
-#combo.ix[pd.notnull(combo.trial_type), 'block_score']=
+    #combo.ix[pd.notnull(combo.trial_type), 'block_score']=
 
-#df[df.index.isin(a_list) & df.a_col.isnull()]
+    #df[df.index.isin(a_list) & df.a_col.isnull()]
 
-combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc #need to sort according to name too...
+    combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc #need to sort according to name too...
 
-test = combo.ix[pd.notnull(combo.stim_file)]
+    test = combo.ix[pd.notnull(combo.stim_file)]
 
-for index, row in test.iterrows():
-    combo.block_score.ix[index]=scores[row['movie_name']]['block_score']
-    combo.n_button_press.ix[index]=scores[row['movie_name']]['n_button_press']
-    combo.event_type.ix[index]='block_summary'
-
-
-cols=['onset', 'duration','trial_type','event_type','participant_value','gold_std','block_score','n_button_press', 'stim_file']
-combo=combo[cols]
-
-combo['onset']=combo.onset/10000.0
-combo.duration=combo.duration/10000.0
-combo.stim_file=combo.stim_file.ffill(axis=0)
+    for index, row in test.iterrows():
+        combo.block_score.ix[index]=scores[row['movie_name']]['block_score']
+        combo.n_button_press.ix[index]=scores[row['movie_name']]['n_button_press']
+        combo.event_type.ix[index]='block_summary'
 
 
-combo
+    cols=['onset', 'duration','trial_type','event_type','participant_value','gold_std','block_score','n_button_press', 'stim_file']
+    combo=combo[cols]
 
-#TODO NEXT: put into a script yay!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    combo['onset']=combo.onset/10000.0
+    combo.duration=combo.duration/10000.0
+    combo.stim_file=combo.stim_file.ffill(axis=0)
 
-combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a', index=False)
+
+    combo
+
+    #TODO NEXT: put into a script yay!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a', index=False)
 
 #NOTE"
 #ok so tomorrow ive gotta figure out that error :( ) it occurs with 0004 part 2
