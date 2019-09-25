@@ -262,6 +262,7 @@ def main():
 
     combo.to_csv('/projects/gherman/Experimenting_notebooks/out/{}_parsed.tsv'.format(file_name), sep='\t', na_rep='n/a', index=False)
 
+    #writes stuff to csv 
     hs = open("/projects/gherman/Experimenting_notebooks/out/generated_list.csv","a")
     hs.write("{},{},{}".format(log_head,log_tail,file_name))
     hs.close()
