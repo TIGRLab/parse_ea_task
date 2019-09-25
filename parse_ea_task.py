@@ -207,16 +207,12 @@ def main():
     #add the ratings and the block values together, then sort them and make the index numbers sequential
     combo=combine_dfs(blocks,ratings)
 
-    ratings_dict= read_in_standard('EA-timing.csv')
+    ratings_dict=read_in_standard('EA-timing.csv')
 
     two_s_chunks,scores= block_scores(ratings_dict,combo) #okay so i need to fix the naming here
 
     combo['block_score']=np.nan
     combo['n_button_press']=np.nan
-
-    #combo.ix[pd.notnull(combo.trial_type), 'block_score']=
-
-    #df[df.index.isin(a_list) & df.a_col.isnull()]
 
     combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc #need to sort according to name too...
 
@@ -235,17 +231,4 @@ def main():
     combo.duration=combo.duration/10000.0
     combo.stim_file=combo.stim_file.ffill(axis=0)
 
-
-    combo
-
-    #TODO NEXT: put into a script yay!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     combo.to_csv('SPN01_CMH_0004-UCLAEmpAcc_part2_parsed.tsv', sep='\t', na_rep='n/a', index=False)
-
-#NOTE"
-#ok so tomorrow ive gotta figure out that error :( ) it occurs with 0004 part 2
-
-#I don't think the weighted average is being calculated correctly... -nvm it is! yay!
-
-
-#to do: convert to seconds, subtract the correct time from everything, check JV's code to see what he did and copy his time subtracting, bring stim_file down to all rows within a trial
