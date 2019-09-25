@@ -1,5 +1,25 @@
+#!/usr/bin/env python
+
+"""
+Parses SPINS' EA log files into BIDS tsvs
+
+usage:
+    parse_ea_task.py <log_file>
+
+arguments:
+    <log_file> The location of the EA file to parse
+
+Details:
+    insert these later
+
+Requires:
+    insert these later
+"""
+
 import pandas as pd
 import numpy as np
+from docopt import docopt
+
 
 #reads in log file and subtracts the initial TRs/MRI startup time
 def read_in_logfile(path):
@@ -195,9 +215,12 @@ def block_scores(ratings_dict,combo):
 
 
 def main():
+    arguments = docopt(__doc__)
+
+    log_file = arguments['<log_file>']
 
     #Reads in the log, skipping the first three preamble lines
-    log = read_in_logfile('/projects/gherman/Experimenting_notebooks/SPN01_CMH_0004-UCLAEmpAcc_part3.log')
+    log = read_in_logfile(log_file)
     vid_in = pd.read_csv('EA-vid-lengths.csv')
 
     vid_info = format_vid_info(vid_in)
