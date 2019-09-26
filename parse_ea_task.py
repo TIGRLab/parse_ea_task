@@ -260,10 +260,10 @@ def main():
 
     file_name=re.sub('.log$','',log_tail)
 
-    combo.to_csv('/projects/gherman/Experimenting_notebooks/out/{}_parsed.tsv'.format(file_name), sep='\t', na_rep='n/a', index=False)
+    combo.to_csv('/projects/gherman/ea_parser/out/{}_parsed.tsv'.format(file_name), sep='\t', na_rep='n/a', index=False)
 
     #writes stuff to csv 
-    hs = open("/projects/gherman/Experimenting_notebooks/out/generated_list.csv","a")
+    hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
     hs.write("{},{},{}\n".format(log_head,log_tail,file_name))
     hs.close()
 
