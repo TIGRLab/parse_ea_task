@@ -264,7 +264,7 @@ def main():
 
     #writes stuff to csv 
     hs = open("/projects/gherman/Experimenting_notebooks/out/generated_list.csv","a")
-    hs.write("{},{},{}".format(log_head,log_tail,file_name))
+    hs.write("{},{},{}\n".format(log_head,log_tail,file_name))
     hs.close()
 
 
