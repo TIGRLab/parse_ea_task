@@ -264,7 +264,7 @@ def main():
 
     #writes stuff to csv 
     hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
-    hs.write("{},{},{}\n".format(log_head,log_tail,file_name))
+    hs.write("{},{},{}_parsed.tsv\n".format(log_head,log_tail,file_name))
     hs.close()
 
 
