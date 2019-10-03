@@ -269,9 +269,17 @@ def main():
         part="NULL"
         sub_id="NULL"
 
+
     file_name="{}_EAtask_{}.tsv".format(sub_id,part)
 
-    combo.to_csv('/projects/gherman/ea_parser/out/{}/{}'.format(sub_id,file_name), sep='\t', na_rep='n/a', index=False)
+    if not os.path.exists(os.path.dirname(file_name)):
+        try:
+            os.makedirs(os.path.dirname(file_name))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
+    combo.to_csv('/projects/gherman/ea_parser/out/{}/{}_EAtask_{}.tsv'.format(sub_id,file_name, sub_id,part), sep='\t', na_rep='n/a', index=False)
 
     #writes stuff to csv
     hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
