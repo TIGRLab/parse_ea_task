@@ -258,11 +258,22 @@ def main():
 
     log_head, log_tail =os.path.split(log_file)
 
-    file_name=re.sub('.log$','',log_tail)
+    find=re.compile('RESOURCES\/(SPN01[^\/]*)')
+    m = find.findall(log_head)
+    find2=re.compile('(part\d).log')
+    n = find2.findall(log_tail)
+    if m and n:
+        part=n[0]
+        sub_id=m[0]
+    else:
+        part="NULL"
+        sub_id="NULL"
 
-    combo.to_csv('/projects/gherman/ea_parser/out/{}_parsed.tsv'.format(file_name), sep='\t', na_rep='n/a', index=False)
+    file_name="{}_EAtask_{}.tsv".format(sub_id,part)
 
-    #writes stuff to csv 
+    combo.to_csv('/projects/gherman/ea_parser/out/{}'.format(file_name), sep='\t', na_rep='n/a', index=False)
+
+    #writes stuff to csv
     hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
     hs.write("{},{},{}_parsed.tsv\n".format(log_head,log_tail,file_name))
     hs.close()
