@@ -271,7 +271,7 @@ def main():
 
     file_name="{}_EAtask_{}.tsv".format(sub_id,part)
 
-    combo.to_csv('/projects/gherman/ea_parser/out/{}'.format(file_name), sep='\t', na_rep='n/a', index=False)
+    combo.to_csv('/projects/gherman/ea_parser/out/{}/{}'.format(sub_id,file_name), sep='\t', na_rep='n/a', index=False)
 
     #writes stuff to csv
     hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
