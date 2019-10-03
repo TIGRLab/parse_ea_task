@@ -270,14 +270,13 @@ def main():
         sub_id="NULL"
 
 
-    file_name="{}_EAtask_{}.tsv".format(sub_id,part)
+    file_name='/projects/gherman/ea_parser/out/{}/{}_EAtask_{}.tsv'.format(sub_id, sub_id,part)
 
     if not os.path.exists(os.path.dirname(file_name)):
-        try:
-            os.makedirs(os.path.dirname(file_name))
+        os.makedirs(os.path.dirname(file_name))
 
 
-    combo.to_csv('/projects/gherman/ea_parser/out/{}/{}_EAtask_{}.tsv'.format(sub_id,file_name, sub_id,part), sep='\t', na_rep='n/a', index=False)
+    combo.to_csv(file_name, sep='\t', na_rep='n/a', index=False)
 
     #writes stuff to csv
     hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
@@ -285,6 +284,13 @@ def main():
     hs.close()
 
 
+
+    EA_mask = combo.ix[combo.trial_type=="EA_block"]
+
+    score_file=open("/projects/gherman/ea_parser/out/compiled_scores.csv","a+")
+    for index, row in EA_mask.iterrows():
+        score_file.write("\n{},{},{},{}".format(sub_id,EA_mask.stim_file.ix[index],EA_mask.block_score.ix[index], log_file))
+    score_file.close()
     #Do i also want to write a csv that says where each thing was generated from? probably.
 
 
