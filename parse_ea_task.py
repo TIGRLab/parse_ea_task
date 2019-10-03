@@ -275,9 +275,7 @@ def main():
     if not os.path.exists(os.path.dirname(file_name)):
         try:
             os.makedirs(os.path.dirname(file_name))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
+
 
     combo.to_csv('/projects/gherman/ea_parser/out/{}/{}_EAtask_{}.tsv'.format(sub_id,file_name, sub_id,part), sep='\t', na_rep='n/a', index=False)
 
