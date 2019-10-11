@@ -259,7 +259,7 @@ def main():
 
     log_head, log_tail =os.path.split(log_file)
 
-    find=re.compile('RESOURCES\/(SPN01[^\/]*)')
+    find=re.compile('RESOURCES\/(SPASD[^\/]*)')
     m = find.findall(log_head)
     find2=re.compile('(part\d).log')
     n = find2.findall(log_tail)
