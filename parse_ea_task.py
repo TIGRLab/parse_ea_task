@@ -267,7 +267,6 @@ def main():
         sub_id=m[0]
     else:
         sub_id="NULL"
-
     if n: 
         part=n[0]
     else:
