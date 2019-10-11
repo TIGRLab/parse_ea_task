@@ -263,13 +263,15 @@ def main():
     m = find.findall(log_head)
     find2=re.compile('(part\d).log')
     n = find2.findall(log_tail)
-    if m and n:
-        part=n[0]
+    if m:
         sub_id=m[0]
     else:
-        part="NULL"
         sub_id="NULL"
 
+    if n: 
+        part=n[0]
+    else:
+        part="NULL"
 
     file_name='/projects/gherman/ea_parser/out/{}/{}_EAtask_{}.tsv'.format(sub_id, sub_id,part)
 
