@@ -87,13 +87,20 @@ def get_ratings(log):
 
     return(df)
 
-#combines the block rows with the ratings rows and sorts them
+
+    #combines the block rows with the ratings rows and sorts them
 def combine_dfs(blocks,ratings):
     combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
 
     mask = pd.notnull(combo['trial_type'])
 
     combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False)
+
+    onsets=pd.Series(combo.onset)
+    combo['space_b4_prev']=onsets.diff(periods=1)
+
+
+    #combo['space_b4_prev']=combo['onset']-combo['onset'].shift(1)
 
     block_start_locs=combo[mask].index.values
 
@@ -112,12 +119,16 @@ def combine_dfs(blocks,ratings):
             'rating_duration':combo.onset[i+1] - combo.onset[i],
             'event_type':'default_rating',
             'duration':0,
-            'participant_value':5}
+            'participant_value':5,
+            'space_b4_prev':9999}
             combo=combo.append(new_row,ignore_index=True)
-
-    combo=combo.sort_values("onset").reset_index(drop=True)
+    combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
+    #combo = combo[(combo['space_b4_prev'] >200)]
+    combo=combo.drop(combo[(combo['space_b4_prev']<200) & (combo['event_type']=='button_press')].index)
+    combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
 
     return(combo)
+
 
 
 #calculates pearsons r by comparing participant ratings w a gold standard
@@ -141,6 +152,9 @@ def block_scores(ratings_dict,combo):
         block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
 
         ###############################################################################################
+        print(block_name)
+        print(block)
+        #print(ratings_dict)
         gold=get_series_standard(ratings_dict,block_name)
 
         if "cvid" in block_name:
@@ -267,12 +281,12 @@ def main():
         sub_id=m[0]
     else:
         sub_id="NULL"
-    if n: 
+    if n:
         part=n[0]
     else:
         part="NULL"
 
-    file_name='/projects/gherman/ea_parser/out/{}/{}_EAtask_{}.tsv'.format(sub_id, sub_id,part)
+    file_name='/projects/gherman/ea_parser/out2/{}/{}_EAtask_{}.tsv'.format(sub_id, sub_id,part)
 
     if not os.path.exists(os.path.dirname(file_name)):
         os.makedirs(os.path.dirname(file_name))
@@ -281,18 +295,18 @@ def main():
     combo.to_csv(file_name, sep='\t', na_rep='n/a', index=False)
 
     #writes stuff to csv
-    hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
-    hs.write("{},{},{}_parsed.tsv\n".format(log_head,log_tail,file_name))
-    hs.close()
+#    hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
+#    hs.write("{},{},{}_parsed.tsv\n".format(log_head,log_tail,file_name))
+#    hs.close()
 
 
 
     EA_mask = combo.ix[combo.trial_type=="EA_block"]
 
-    score_file=open("/projects/gherman/ea_parser/out/compiled_scores.csv","a+")
-    for index, row in EA_mask.iterrows():
-        score_file.write("\n{},{},{},{}".format(sub_id,EA_mask.stim_file.ix[index],EA_mask.block_score.ix[index], log_file))
-    score_file.close()
+    #score_file=open("/projects/gherman/ea_parser/out/compiled_scores.csv","a+")
+    #for index, row in EA_mask.iterrows():
+    #    score_file.write("\n{},{},{},{}".format(sub_id,EA_mask.stim_file.ix[index],EA_mask.block_score.ix[index], log_file))
+    #score_file.close()
     #Do i also want to write a csv that says where each thing was generated from? probably.
 
 
