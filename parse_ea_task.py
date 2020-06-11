@@ -55,7 +55,7 @@ def get_blocks(log,vid_info):
 
 #grabs stimulus metadata
 def format_vid_info(vid):
-    vid.columns = map(str.lower, vid.columns)
+    vid.columns = [c.lower() for c in vid.columns]	
     vid = vid.rename(index={0:"stim_file", 1:"duration"}) #grabs the file name and the durations from the info file
     vid = vid.to_dict()
     return(vid)
@@ -63,7 +63,7 @@ def format_vid_info(vid):
 #Reads in gold standard answers
 def read_in_standard(timing_path):
     df = pd.read_csv(timing_path).astype(str)
-    df.columns = map(str.lower, df.columns)
+    df.columns = [c.lower() for c in df.columns]	
     df_dict = df.drop([0,0]).reset_index(drop=True).to_dict(orient='list') #drops the video name
     return(df_dict)
 
@@ -119,8 +119,7 @@ def combine_dfs(blocks,ratings):
             'rating_duration':combo.onset[i+1] - combo.onset[i],
             'event_type':'default_rating',
             'duration':0,
-            'participant_value':5,
-            'space_b4_prev':9999}
+            'participant_value':5}
             combo=combo.append(new_row,ignore_index=True)
     combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
     #combo = combo[(combo['space_b4_prev'] >200)]
@@ -152,9 +151,6 @@ def block_scores(ratings_dict,combo):
         block_name=combo.movie_name.iloc[block_start_locs[idx-1]:block_start_locs[idx]][pd.notnull(combo.movie_name)].reset_index(drop=True).astype(str).get(0)
 
         ###############################################################################################
-        print(block_name)
-        print(block)
-        #print(ratings_dict)
         gold=get_series_standard(ratings_dict,block_name)
 
         if "cvid" in block_name:
@@ -277,14 +273,12 @@ def main():
     m = find.findall(log_head)
     find2=re.compile('(part\d).log')
     n = find2.findall(log_tail)
-    if m:
-        sub_id=m[0]
-    else:
-        sub_id="NULL"
-    if n:
-        part=n[0]
-    else:
-        part="NULL"
+    if m and n:	
+        part=n[0]	
+        sub_id=m[0]	
+    else:	
+        part="NULL"	
+        sub_id="NULL"	
 
     file_name='/projects/gherman/ea_parser/out2/{}/{}_EAtask_{}.tsv'.format(sub_id, sub_id,part)
 
