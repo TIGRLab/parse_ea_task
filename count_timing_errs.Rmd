@@ -1,0 +1,66 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+path<-("~/Documents/kimel/fix_ea_parsing/parsed/SPN01_CMH_0001_01_01_EAtask_part1.tsv")
+
+input <- read.csv(path, sep='\t',stringsAsFactors = FALSE)
+
+input
+
+
+```
+
+
+
+```{r}
+test <- input %>% filter(trial_type!="n/a"|event_type=="button_press") %>% filter(trial_type!="n/a"|lag(event_type)=="block_summary") %>% mutate(time_diff=onset-lag(onset))
+
+test
+
+```
+
+
+
+```{r}
+count_errors <- function(df){
+  
+  df <- df %>% mutate(time_lag=onset-lag(onset)) %>% filter(event_type=="button_press") %>% filter(time_diff<=0.05)
+  return(nrow(df))
+}
+
+
+df <- df %>% filter(trial_type!="n/a"|event_type=="button_press") %>% filter(trial_type!="n/a"|lag(event_type)=="block_summary") %>% mutate(time_diff=onset-lag(onset))
+return(df)
+}
+
+process_df <- function(path){
+  input <- read.csv(path, sep='\t',stringsAsFactors = FALSE)
+
+ input<- input %>% filter(trial_type!="n/a"|event_type=="button_press") %>%     filter(trial_type!="n/a"|lag(event_type)=="block_summary") %>% mutate(time_diff=onset-lag(onset))
+ 
+ input2 <- format_df(input)
+ 
+ n_errors <- count_errors(input2)
+ 
+ return(n_errors)
+  
+}
+```
+
+    
+```{r}
+file_list<-list.files(path="~/Documents/kimel/fix_ea_parsing/parsed",pattern="*.tsv", full.names=TRUE)
+
+f_df <- data.frame(file=file_list, stringsAsFactors=FALSE) %>% rowwise() %>% mutate(n_errors = process_df(file))
+
+f_df
+```
+
