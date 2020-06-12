@@ -88,24 +88,32 @@ def get_ratings(log):
 def combine_dfs(blocks,ratings):
     combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
     mask = pd.notnull(combo['trial_type'])
+    combo['space_b4_prev']=combo['onset'].diff(periods=1)
+    combo['first_button_press']=combo['duration'].shift()>0
+    combo2 = combo.drop(combo[(combo['space_b4_prev']<1000) & (combo['first_button_press']==True)].index).reset_index(drop=True)
 
-    block_start_locs=combo[mask].index.values
 
-    onsets=pd.Series(combo.onset)
+    mask = pd.notnull(combo2['trial_type'])
 
-    combo['space_b4_prev']=onsets.diff(periods=1)
+    block_start_locs=combo2[mask].index.values
 
-    last_block=combo.iloc[block_start_locs[len(block_start_locs)-1]]
+    onsets=pd.Series(combo2.onset)
+
+    last_block=combo2.iloc[block_start_locs[len(block_start_locs)-1]]
 
     end_row={'onset':last_block.end,
                 'rating_duration':0,
-                'event_type':'final_row',
+                'event_type':'last_row',
                 'duration':0,
-                'participant_value':0}
+                'participant_value':last_block.participant_value}
 
-    combo=combo.append(end_row,ignore_index=True)
-    combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False)
+    combo2=combo2.append(end_row,ignore_index=True).reset_index(drop=True)
 
+    mask = pd.notnull(combo2['trial_type'])
+
+    block_start_locs=combo2[mask].index.values
+
+    combo2['rating_duration']=combo2['onset'].shift(-1)-combo2['onset'].where(mask==False)
 
 
 
@@ -113,24 +121,22 @@ def combine_dfs(blocks,ratings):
     for i in range(len(block_start_locs)):
         if block_start_locs[i] != 0:
             #maybe i should calculate these vars separately for clarity
-            combo.rating_duration[block_start_locs[i-1]]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i-1]]
-            print(combo.rating_duration[block_start_locs[i-1]])
+            combo2.rating_duration[block_start_locs[i-1]]=combo2.end[block_start_locs[i-1]] - combo2.onset[block_start_locs[i-1]]
 
 
-#adds rows that contain the 5 second at the beginning default value
+    #adds rows that contain the 5 second at the beginning default value
     for i in block_start_locs:
-            new_row={'onset':combo.onset[i],
-            'rating_duration':combo.onset[i+1] - combo.onset[i],
+            new_row={'onset':combo2.onset[i],
+            'rating_duration':combo2.onset[i+1] - combo2.onset[i],
             'event_type':'default_rating',
             'duration':0,
             'participant_value':5}
-            combo=combo.append(new_row,ignore_index=True)
-    combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
-    #combo = combo[(combo['space_b4_prev'] >200)]
-    combo=combo.drop(combo[(combo['space_b4_prev']<1000) & (combo['event_type']=='button_press') & (combo['event_type'].shift()=='default_rating')].index)
-    combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
+            combo2=combo2.append(new_row,ignore_index=True)
 
-    return(combo)
+    #combo=combo.drop(combo[combo['event_type']=='last_row'].index)
+    combo2=combo2.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
+
+    return(combo2)
 
 
 
@@ -197,10 +203,13 @@ def block_scores(ratings_dict,combo):
                     else:#if row.onset>=start and row.onset<end: #ooo should i do row.onset<end for everything??
                         if (row.onset+row.rating_duration) <= end:
                             numerator=row.rating_duration
+                            print(row)
                         elif (row.onset+row.rating_duration) > end:
                             numerator = end - row.onset
                         else:
-                            numerator=9999999 #add error here
+                            numerator=999999 #add error here
+                            print("error!!")
+                            print(row)
                     last_row=row.participant_value
                     #okay so i want to change this to actually create the beginnings of an important row in our df!
                     ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_value, 'time_held':numerator})#, 'start': start, 'end':end})
