@@ -10,10 +10,8 @@ arguments:
     <log_file> The location of the EA file to parse
 
 Details:
-    insert these later
+    Parses EA files (presentation .log outputs) given a file path. There are several hard-coded paths. These should probably be fixed someday.
 
-Requires:
-    insert these later
 """
 
 import pandas as pd
@@ -55,7 +53,7 @@ def get_blocks(log,vid_info):
 
 #grabs stimulus metadata
 def format_vid_info(vid):
-    vid.columns = [c.lower() for c in vid.columns]	
+    vid.columns = [c.lower() for c in vid.columns]
     vid = vid.rename(index={0:"stim_file", 1:"duration"}) #grabs the file name and the durations from the info file
     vid = vid.to_dict()
     return(vid)
@@ -63,7 +61,7 @@ def format_vid_info(vid):
 #Reads in gold standard answers
 def read_in_standard(timing_path):
     df = pd.read_csv(timing_path).astype(str)
-    df.columns = [c.lower() for c in df.columns]	
+    df.columns = [c.lower() for c in df.columns]
     df_dict = df.drop([0,0]).reset_index(drop=True).to_dict(orient='list') #drops the video name
     return(df_dict)
 
@@ -273,12 +271,12 @@ def main():
     m = find.findall(log_head)
     find2=re.compile('(part\d).log')
     n = find2.findall(log_tail)
-    if m and n:	
-        part=n[0]	
-        sub_id=m[0]	
-    else:	
-        part="NULL"	
-        sub_id="NULL"	
+    if m and n:
+        part=n[0]
+        sub_id=m[0]
+    else:
+        part="NULL"
+        sub_id="NULL"
 
     file_name='/projects/gherman/ea_parser/out2/{}/{}_EAtask_{}.tsv'.format(sub_id, sub_id,part)
 
