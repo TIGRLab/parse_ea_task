@@ -231,26 +231,29 @@ def main():
 
     #Reads in the log, skipping the first three preamble lines
     log = read_in_logfile(log_file)
+    #reads in metadata about video stimuli
     vid_in = pd.read_csv('EA-vid-lengths.csv')
-
+    #formats video metadata
     vid_info = format_vid_info(vid_in)
+    #finds block onsets and categorizes as ea or circles
     blocks = get_blocks(log, vid_info)
+    #grabs all participant button-presses
     ratings = get_ratings(log)
 
     #add the ratings and the block values together, then sort them and make the index numbers sequential
     combo=combine_dfs(blocks,ratings)
-
+    #more metadata, this time about the gold standard
     ratings_dict=read_in_standard('EA-timing.csv')
-
-    two_s_chunks,scores= block_scores(ratings_dict,combo) #okay so i need to fix the naming here
+    #creates the rolling 2s average time series for the participant&gold standard, calculates pearsons r for EA score
+    two_s_chunks,scores= block_scores(ratings_dict,combo)
 
     combo['block_score']=np.nan
     combo['n_button_press']=np.nan
 
-    combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True) #this needs to be fixed etc #need to sort according to name too...
+    combo = combo.append(two_s_chunks).sort_values("onset").reset_index(drop=True)
 
     test = combo.ix[pd.notnull(combo.stim_file)]
-
+    #adds in scores, button presses, etc
     for index, row in test.iterrows():
         combo.block_score.ix[index]=scores[row['movie_name']]['block_score']
         combo.n_button_press.ix[index]=scores[row['movie_name']]['n_button_press']
@@ -259,14 +262,15 @@ def main():
 
     cols=['onset', 'duration','trial_type','event_type','participant_value','gold_std','block_score','n_button_press', 'stim_file']
     combo=combo[cols]
-
+    #converts timestamps to seconds
     combo['onset']=combo.onset/10000.0
     combo.duration=combo.duration/10000.0
     combo = combo.sort_values(by=['onset', 'event_type']) #by sorting it makes the fill down accurate instead of mis-labeling (should possibly do this in a better way in future)
     combo.stim_file=combo.stim_file.ffill(axis=0)
-
+    combo = combo[combo.event_type != "final_row"] #gets rid of that helper row
     log_head, log_tail =os.path.split(log_file)
 
+    #names the file (in a pretty hacky matter tbh) and saves it
     find=re.compile('RESOURCES\/(SPN01[^\/]*)')
     m = find.findall(log_head)
     find2=re.compile('(part\d).log')
@@ -286,7 +290,7 @@ def main():
 
     combo.to_csv(file_name, sep='\t', na_rep='n/a', index=False)
 
-    #writes stuff to csv
+    #writes a legend of what has been processed to CSV
 #    hs = open("/projects/gherman/ea_parser/out/generated_list.csv","a")
 #    hs.write("{},{},{}_parsed.tsv\n".format(log_head,log_tail,file_name))
 #    hs.close()
@@ -294,6 +298,8 @@ def main():
 
 
     EA_mask = combo.ix[combo.trial_type=="EA_block"]
+
+    #This section writes to a compiled scores CSV in case there is desire for summary scores. There is probably a better way to do this.
 
     #score_file=open("/projects/gherman/ea_parser/out/compiled_scores.csv","a+")
     #for index, row in EA_mask.iterrows():
