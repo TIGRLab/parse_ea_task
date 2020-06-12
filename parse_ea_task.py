@@ -43,7 +43,7 @@ def get_blocks(log,vid_info):
                   'movie_name':log.loc[mask]['Code']})
     #adds trial type info
     df['trial_type']=df['movie_name'].apply(lambda x: "circle_block" if "cvid" in x else "EA_block")
-    #add durations and convert them into the units here? 10000ths of seconds
+    #add durations and convert them into the units used here
     df['duration']=df['movie_name'].apply(lambda x: int(vid_info[x]['duration'])*10000 if x in vid_info else "n/a")
     #adds names of stim_files, according to the vid_info spreadsheet
     df['stim_file']=df['movie_name'].apply(lambda x: vid_info[x]['stim_file'] if x in vid_info else "n/a")
@@ -74,11 +74,9 @@ def get_ratings(log):
 
     rating_mask = ["rating" in log['Code'][i] for i in range(0,log.shape[0])]
 
-    #So this grabs from the stim row and not the button press row, but there's like 50 10000ths of a second difference so i feel fine doing that. otherwise it creates risk for other errors if the sheets are weird.
     #gives the time and value of the partiicipant rating
     df = pd.DataFrame({'onset':log['Time'].loc[rating_mask].values, 'participant_value':log.loc[rating_mask]['Code'].values, 'event_type':'button_press', 'duration':0})
 
-    #this pretty much fixes it except for the vid_thing - one thing I could do is just get rid of the vid_ rows!! TODO later.
 
     #gets rating substring from participant numbers
     df['participant_value'] = df['participant_value'].str.strip().str[-1]
@@ -89,26 +87,34 @@ def get_ratings(log):
     #combines the block rows with the ratings rows and sorts them
 def combine_dfs(blocks,ratings):
     combo=blocks.append(ratings).sort_values("onset").reset_index(drop=True)
-
     mask = pd.notnull(combo['trial_type'])
-
-    combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False)
-
-    onsets=pd.Series(combo.onset)
-    combo['space_b4_prev']=onsets.diff(periods=1)
-
-
-    #combo['space_b4_prev']=combo['onset']-combo['onset'].shift(1)
 
     block_start_locs=combo[mask].index.values
 
+    onsets=pd.Series(combo.onset)
 
-    #TODO: fix this lol
+    combo['space_b4_prev']=onsets.diff(periods=1)
+
+    last_block=combo.iloc[block_start_locs[len(block_start_locs)-1]]
+
+    end_row={'onset':last_block.end,
+                'rating_duration':0,
+                'event_type':'final_row',
+                'duration':0,
+                'participant_value':0}
+
+    combo=combo.append(end_row,ignore_index=True)
+    combo['rating_duration']=combo['onset'].shift(-1)-combo['onset'].where(mask==False)
+
+
+
+
     #this ends up not assigning a value for the final button press - there must be a more elegant way to do all this
     for i in range(len(block_start_locs)):
         if block_start_locs[i] != 0:
             #maybe i should calculate these vars separately for clarity
-            combo.rating_duration[block_start_locs[i]-1]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i]-1]
+            combo.rating_duration[block_start_locs[i-1]]=combo.end[block_start_locs[i-1]] - combo.onset[block_start_locs[i-1]]
+            print(combo.rating_duration[block_start_locs[i-1]])
 
 
 #adds rows that contain the 5 second at the beginning default value
@@ -121,7 +127,7 @@ def combine_dfs(blocks,ratings):
             combo=combo.append(new_row,ignore_index=True)
     combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
     #combo = combo[(combo['space_b4_prev'] >200)]
-    combo=combo.drop(combo[(combo['space_b4_prev']<200) & (combo['event_type']=='button_press')].index)
+    combo=combo.drop(combo[(combo['space_b4_prev']<1000) & (combo['event_type']=='button_press') & (combo['event_type'].shift()=='default_rating')].index)
     combo=combo.sort_values(by=["onset","event_type"],na_position='first').reset_index(drop=True)
 
     return(combo)
@@ -164,21 +170,15 @@ def block_scores(ratings_dict,combo):
             interval=interval[:len(gold)]
             #TODO: convert this to logger stuff eventually
             print("warning:gold standard is shorter than the number of pt ratings, pt ratings truncated", block_name)
-            #todo: insert a warning that the participant ratings were truncated
-            #also this doesnt account for a situation where there are less ratings than the gold standard
-            #which could absolutely be a thing if the task was truncated
-            #gold.extend([gold[-1]]*(len(interval)-len(gold)))
+
 
         if len(interval) < len(gold):
             gold=gold[:len(interval)]
             #TODO: convert this to logger stuff eventually
             print("warning:number of pt ratings is shorter than the number of gold std,gold std truncated", block_name)
-            #todo: insert a warning that the participant ratings were truncated
 
         interval=np.append(interval, block_end) #this is to append for the remaining fraction of a second (so that the loop goes to the end i guess...)- maybe i dont need to do this
 
-        #why is this not doing what it is supposed to do.
-        #these ifs are NOT working
         two_s_avg=[]
         for x in range(len(interval)-1):
             start=interval[x]
@@ -200,7 +200,7 @@ def block_scores(ratings_dict,combo):
                         elif (row.onset+row.rating_duration) > end:
                             numerator = end - row.onset
                         else:
-                            numerator=9999999
+                            numerator=9999999 #add error here
                     last_row=row.participant_value
                     #okay so i want to change this to actually create the beginnings of an important row in our df!
                     ratings.append({'start':start,'end':end,'row_time':row.rating_duration, 'row_start': row.onset, 'block_length':block_length,'rating':row.participant_value, 'time_held':numerator})#, 'start': start, 'end':end})
